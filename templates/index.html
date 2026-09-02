@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>股票組合歷史回測 + N 年情境 · Portfolio Forecast</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>股票組合歷史回測 + N 年情境</h1>
+    <p class="sub">讀用戶名單（Csv）→ FinMind 抓歷史價 → 3 模式回測 → N-Year Rolling CAGR 情境終值</p>
+  </header>
+
+  <section class="card">
+    <h2>① 輸入</h2>
+    <form id="fAnalyze">
+      <div class="grid">
+        <div>
+          <label>用戶名單（CSV）</label>
+          <select name="profile" id="profileSel" required></select>
+          <div class="profile-row">
+            <small id="profileMeta" class="hint"></small>
+            <button type="button" id="btnUploadProfile" class="btn-mini" title="上傳新的 CSV 名單">📁 上傳 CSV</button>
+            <input type="file" id="fileUploadProfile" accept=".csv,text/csv" hidden>
+          </div>
+        </div>
+        <div>
+          <label>N 年（預估）</label>
+          <input type="number" name="n" value="10" min="1" max="50" required>
+        </div>
+        <div>
+          <label>目前資產 (PV)</label>
+          <input type="number" name="pv" placeholder="不填 → 自動用市值" min="0">
+          <small class="hint">不填 = 最後收盤價 × 股數</small>
+        </div>
+        <div>
+          <label>權重（選填）</label>
+          <input type="text" name="weights" placeholder="不填 → 起始市值權重，例 2330:0.3,2317:0.7">
+        </div>
+        <div>
+          <label>Benchmark（選填）</label>
+          <input type="text" name="benchmark" placeholder="例 0050、006208、2330">
+          <small class="hint">對照組股票代號</small>
+        </div>
+        <div>
+          <label>買入手續費 (%)</label>
+          <input type="number" name="fee_buy" value="0.142" min="0" max="10" step="0.001">
+        </div>
+        <div>
+          <label>賣出證交稅 (%)</label>
+          <input type="number" name="tax_sell" value="0.3" min="0" max="10" step="0.001">
+        </div>
+        <div>
+          <label>滑價 (%)</label>
+          <input type="number" name="slippage" value="0.1" min="0" max="10" step="0.001">
+        </div>
+        <div><label>目前年齡</label><input type="number" name="v2_current_age" value="55" min="1" max="120" required></div>
+        <div><label>退休年齡</label><input type="number" name="v2_retirement_age" value="60" min="1" max="120" required></div>
+        <div><label>退休評估終點年齡</label><input type="number" name="v2_retirement_end_age" value="90" min="2" max="120" required></div>
+        <div><label>F2 模擬次數</label><input type="number" name="v2_n_simulations" value="1000" min="100" max="100000" step="100" required></div>
+        <div><label>退休後月提款 (NT$)</label><input type="number" name="v2_withdrawal_monthly" value="30000" min="0" step="1000" required></div>
+        <div><label>提款通膨率 (%)</label><input type="number" name="v2_withdrawal_inflation" value="3" min="0" max="30" step="0.1" required></div>
+        <div><label>退休後月年金 (NT$)</label><input type="number" name="v2_pension_monthly" value="0" min="0" step="1000" required></div>
+        <div><label>年金年調整率 (%)</label><input type="number" name="v2_pension_inflation" value="2" min="0" max="30" step="0.1" required></div>
+        <div><label>一次性支出（起始後第幾年:金額）</label><input type="text" name="v2_special_expenses" placeholder="例 5:1000000, 15:500000"><small class="hint">金額單位 NT$；空白表示沒有</small></div>
+      </div>
+      <div class="actions">
+        <button type="submit" id="btnRun">開始分析</button>
+        <button type="button" id="btnExportHtml" disabled>回測與預測報告</button>
+        <button type="button" id="btnRebalance" disabled>再平衡建議</button>
+        <span id="status" class="status"></span>
+      </div>
+    </form>
+    <div id="err" class="err"></div>
+  </section>
+
+  <section id="out" hidden>
+
+    <div class="card" id="tickerMatchCard">
+      <h2>② Ticker 驗證結果</h2>
+      <p class="hint">從 FinMind TaiwanStockInfo 拿上市櫃清單，自動補 0 + match 個股名稱。</p>
+      <div id="tickerMatch"></div>
+    </div>
+
+    <div class="card" id="mvCard">
+      <h2>③ 組合起始市值</h2>
+      <p class="hint">以「最新收盤價 × 股數」自動計算（取代固定 10M）。</p>
+      <div id="mv"></div>
+    </div>
+
+    <div class="card" id="historyCard">
+      <h2>④ 個股歷史長度診斷</h2>
+      <div id="hist"></div>
+    </div>
+
+    <div class="card">
+      <h2>⑤ 歷史真實績效：3 種回測模式比較</h2>
+      <p class="hint weights-info" id="weightsInfo">
+        <b>此次權重：</b><span id="weightsContent">—（執行分析後填入）</span>
+      </p>
+      <p class="hint">為什麼要 3 種？不同回測條件會得到不同答案，並列顯示才能看到答案的「完整範圍」。</p>
+      <div class="tabs">
+        <button class="tab active" data-mode="common">
+          <b>全體共同期間</b>
+          <small>最嚴格比較</small>
+        </button>
+        <button class="tab" data-mode="dynamic">
+          <b>逐步加入模式</b>
+          <small>最貼近真實投資</small>
+        </button>
+        <button class="tab" data-mode="full">
+          <b>各標的完整歷史</b>
+          <small>單獨診斷</small>
+        </button>
+      </div>
+      <div id="kpi" class="kpi"></div>
+      <div class="chart"><canvas id="navChart"></canvas></div>
+      <p class="hint">註：N/A 資料點不視為 0% 報酬，僅用當日有價股票重新正規化（逐步加入 / 各標的完整歷史）。</p>
+    </div>
+
+    <div class="card">
+      <h2>⑥ 未來 N 年情境推估（終值分布）</h2>
+      <div class="note" id="forecastNote">取「歷史滾動 N 年收益分布」的分位數（基於 <span id="fcBasis">—</span> 模式），FV = 目前資產 × (1+r)^N。下方 5 個情境由歷史資料產生，不模擬未來逐年路徑。</div>
+      <table id="fcTable">
+        <thead><tr>
+          <th>情境</th><th>分位數</th><th>歷史 N 年年化報酬率</th>
+          <th>目前資產</th><th>N 年後</th><th>資產增長倍數</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="hint">歷史滾動 N 年樣本數：<b id="rCount">—</b></p>
+    </div>
+
+    <div class="card">
+      <h2>⑦ 歷史滾動 N 年收益分布圖</h2>
+      <p class="hint">這張圖讓你看 5 個情境的分位數（P10/P25/P50/P75/P90）落在哪裡 — 分布越分散，未來越不確定。</p>
+      <div class="chart small"><canvas id="rollChart"></canvas></div>
+    </div>
+
+    <div class="card" id="monthlyReturnsCard" data-v2-section="monthly_returns">
+      <h2>⑧ 歷史真實績效明細表（每月）</h2>
+      <p class="hint">每個 ticker 的逐月報酬（compound）與年算術平均。點 ticker 名展開/收合。</p>
+      <div id="monthlyReturns"></div>
+    </div>
+
+    <div class="card" id="benchCard" hidden>
+      <h2>⑨ Benchmark 對照組</h2>
+      <p class="hint">拿一檔基準股票（例如 0050 元大台灣50）跟你的組合比較，看是贏還是輸。</p>
+      <div id="bench"></div>
+    </div>
+
+    <div class="card" id="monteCarloCard" data-v2-section="monte_carlo" hidden>
+      <h2>⑩ Monte Carlo 模擬（v2 F1 + F2）</h2>
+      <p class="hint">F1 用區塊 bootstrap 抽出 N 條未來軌跡；F2 評估退休提款存活率。<b>取代歷史滾動推估</b>（同樣的問題但給出資產路徑 + 破產年齡分布）。</p>
+
+      <h3 style="color:#17365d; margin-top:18px;">▶ F1 Monte Carlo <span id="mcMeta" class="hint"></span></h3>
+      <table id="mcTable">
+        <thead><tr><th>指標</th><th>數值（NT$ / %）</th></tr></thead>
+        <tbody><tr><td colspan="2" class="hint">載入中…</td></tr></tbody>
+      </table>
+
+      <h3 style="color:#17365d; margin-top:24px;">▶ F2 Sequence Risk（退休提款存活率）</h3>
+      <table id="srTable">
+        <thead><tr><th>指標</th><th>數值</th></tr></thead>
+        <tbody><tr><td colspan="2" class="hint">載入中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="riskMetricsCard" data-v2-section="risk_metrics" hidden>
+      <h2>⑪ 風險指標（v2 F3 + F6）</h2>
+      <p class="hint">F3 用歷史法算 VaR/CVaR（多 horizon × 多 confidence），F6 算 Sharpe（含無風險利率 1.5%）。</p>
+
+      <h3 style="color:#17365d; margin-top:18px;">▶ F3 VaR / CVaR（歷史法 · 日/月/年 3 個 horizon × 95/99% confidence）</h3>
+      <table id="varTable">
+        <thead><tr><th>指標</th><th>1 日</th><th>21 日（月）</th><th>252 日（年）</th></tr></thead>
+        <tbody><tr><td colspan="4" class="hint">載入中…</td></tr></tbody>
+      </table>
+
+      <h3 style="color:#17365d; margin-top:24px;">▶ F6 Sharpe（含無風險利率 = <span id="rfUsed">—</span>）</h3>
+      <table id="sharpeTable">
+        <thead><tr><th>指標</th><th>數值</th></tr></thead>
+        <tbody><tr><td colspan="2" class="hint">載入中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card warn">
+      <h2>⚠️ 研究限制提醒</h2>
+      <ul>
+        <li><b>倖存者偏差</b>：本名單是 2026 年仍存在的持股。若用來回測 2010-2020，這段期間下市的股票已被默默排除，會高估歷史報酬。</li>
+        <li><b>未來資訊偏差</b>：本工具使用的權重 / 持股是「現在的決定」，不模擬「當時不知道的未來」。</li>
+        <li><b>股利/除權息</b>：原始 close 由 FinMind <code>TaiwanStockPrice</code> 提供，搭配 <code>dividends + splits</code> 以「股數追蹤法」逐日還原（配息當日以 close 再投入、split 調整股數）。本版 CAGR 為「總報酬」，含股利再投資效果。<br><b>注：</b>「〇 組合起始市值」用當下「原始收盤價」算市值，反映現實持倉金額。</li>
+        <li><b>交易成本</b>：本版未計手續費 / 證交稅 / 滑價（可在 UI 上方設定）。實際買入需扣 0.1425% 手續費、賣出再扣 0.3% 證交稅。</li>
+        <li><b>情境推估語意</b>：P10/P50/P90 是「歷史上相同 N 年持有期間的結果分布」，<b>不是未來保證</b>。</li>
+        <li><b>資料不完整</b>：6 個字母型 ETF（00980A/00981A/00988A/009816/009805/00713）為 2017 後新上市，歷史 < 10 年，不適合 10 年推估。</li>
+      </ul>
+    </div>
+
+  </section>
+
+  <footer class="foot">
+    <span>本工具為歷史回測情境參考，<b>不構成投資建議</b>。</span>
+    <span> · 資料來源：<a href="https://finmindtrade.com/" target="_blank" rel="noopener">FinMind</a></span>
+  </footer>
+</div>
+
+<script>
+window.PORTFOLIO_TERMS = {{ terms_json|safe }};
+</script>
+<script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+.venv-linux/
+.venv-*/
+.trash*/
+.trash-*/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs and runtime data
+logs/
+*.log
+data/price_cache/
+data/reports/
+docs/
+
+# User profiles (personal data)
+user_profile/*.csv
+!user_profile/sample_stock.csv
+!user_profile/*.example.csv
+
+# API keys and secrets
+config/*-api-key
+config/*.key
+.env
+
+# Test artifacts
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+*.cover
+docs/
+
+# OS files
+Thumbs.db
+
+# Sensitive (FinMind token etc.)
+**/finmind-api-key
+
+# lib/app.py was an accidental duplicate of root app.py from earlier dev (moved to .trash 2026-09-01)
+lib/app.py
