@@ -39,7 +39,8 @@ env/
 logs/
 *.log
 data/price_cache/
-data/reports/
+data/reports/*.html
+!data/reports/sample_stock_portfolio_*.html
 docs/
 
 # User profiles (personal data)

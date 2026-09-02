@@ -713,10 +713,12 @@
     {% if opt.dataset %}
     <h3>Daily Return Dataset / Data Quality</h3>
     <table><tbody>
+      <tr><td>Requested N / Actual Common Period</td><td>{{ opt.dataset.requested_n_years or 'N/A' }} 年 / {{ opt.dataset.actual_common_period_years or 0 }} 年</td></tr>
       <tr><td>共同資料期間</td><td>{{ opt.dataset.start_date or 'N/A' }} → {{ opt.dataset.end_date or 'N/A' }}</td></tr>
       <tr><td>Observation Count</td><td>{{ opt.dataset.observation_count }}</td></tr>
       <tr><td>Missing Count</td><td>{{ opt.dataset.missing_count }}</td></tr>
       <tr><td>Valid Observation Ratio</td><td>{{ opt.dataset.valid_observation_ratio|fmt_pct }}%</td></tr>
+      {% for warning in opt.data_quality_warnings or [] %}<tr><td>Data Quality Warning</td><td style="color:#b42318">{{ warning }}</td></tr>{% endfor %}
     </tbody></table>
     {% endif %}
     {% if opt.correlation_matrix %}
@@ -727,24 +729,24 @@
     {% set om = opt.optimized %}{% set cm = opt.current %}
     <h3>Current vs Optimized Portfolio Backtest</h3>
     <table><thead><tr><th>Metric</th><th>Current</th><th>Optimized</th><th>Change / Direction</th></tr></thead><tbody>
-      {% for key, label, better in [('cagr','CAGR','Higher is better'),('volatility','Volatility','Lower is better'),('mdd','MDD','Higher is better'),('sharpe','Sharpe','Higher is better'),('calmar','Calmar','Higher is better')] %}
-      <tr><td>{{ label }}</td><td>{{ cm[key]|fmt_pct }}%</td><td>{{ om[key]|fmt_pct }}%</td><td>{{ (om[key]-cm[key])|fmt_pct }}% · {{ better }}</td></tr>
+      {% for key, label, better in [('cagr','CAGR','Higher is better'),('volatility','Volatility','Lower is better'),('mdd','MDD','Higher is better'),('sharpe','Sharpe','Higher is better'),('sortino','Sortino','Higher is better'),('calmar','Calmar','Higher is better'),('var','VaR 5%','Higher is better'),('cvar','CVaR 5%','Higher is better')] %}
+      <tr><td>{{ label }}</td>{% if key in ('sharpe','sortino','calmar') %}<td>{{ cm[key]|fmt_float }}</td><td>{{ om[key]|fmt_float }}</td><td>{{ (om[key]-cm[key])|fmt_float }} · {{ better }}</td>{% else %}<td>{{ cm[key]|fmt_pct }}%</td><td>{{ om[key]|fmt_pct }}%</td><td>{{ (om[key]-cm[key])|fmt_pct }}% · {{ better }}</td>{% endif %}</tr>
       {% endfor %}
     </tbody></table>
     {% endif %}
     {% if opt.scores %}
     <h3>Evidence / Raw Score / Adjusted Score</h3>
-    <table><thead><tr><th>標的</th><th>History Years</th><th>Evidence</th><th>Raw Score</th><th>Adjusted Score</th><th>Classification</th></tr></thead><tbody>
-      {% for t, s in opt.scores|dictsort %}<tr><td>{{ t }}</td><td>{{ s.history_years }}</td><td>{{ s.evidence_score|fmt_float if s.evidence_score is not none else 'N/A' }}</td><td>{{ s.raw_score|fmt_float }}</td><td>{{ s.adjusted_score|fmt_float if s.adjusted_score is not none else 'N/A' }}</td></tr>{% endfor %}
+    <table><thead><tr><th>標的</th><th>History Years</th><th>Classification</th><th>Evidence</th><th>Evidence Factor</th><th>Raw Score</th><th>Adjusted Score</th><th>Candidate</th></tr></thead><tbody>
+      {% for t, s in opt.scores|dictsort %}<tr><td>{{ t }}</td><td>{{ s.history_years }}</td><td>{{ s.classification }}</td><td>{{ s.evidence_score|fmt_float if s.evidence_score is not none else 'N/A' }}</td><td>{{ s.evidence_factor|fmt_float }}</td><td>{{ s.raw_score|fmt_float }}</td><td>{{ s.adjusted_score|fmt_float if s.adjusted_score is not none else 'N/A' }}</td><td>{% if s.emerging_quality_candidate %}Emerging Quality Candidate{% else %}—{% endif %}</td></tr>{% endfor %}
     </tbody></table>
     {% endif %}
     {% if opt.optimized and opt.trades %}
     <h3>Target Allocation / Rebalance Trade</h3>
     <p class="meta">Constraints: Σw=1, 2% ≤ w ≤ 15%　·　No Trade Threshold: 1%　·　Balanced λ={{ opt.parameters.models.Balanced.lambda_tracking }}, γ={{ opt.parameters.models.Balanced.gamma_concentration }}</p>
-    <table><thead><tr><th>標的</th><th>Current Weight</th><th>Target Weight</th><th>Target Value</th><th>Trade Value</th><th>Target Shares</th><th>Action</th></tr></thead><tbody>
-      {% for x in opt.trades %}<tr><td>{{ x.ticker }}</td><td>{{ x.current_weight|fmt_pct }}%</td><td>{{ x.target_weight|fmt_pct }}%</td><td>{{ x.target_value|fmt_money }}</td><td>{{ x.trade_value|fmt_money }}</td><td>{{ x.target_shares if x.target_shares is not none else 'N/A' }}</td><td>{{ x.action }}</td></tr>{% endfor %}
+    <table><thead><tr><th>標的</th><th>Current Weight</th><th>Target Weight</th><th>Actual Weight</th><th>Target Value</th><th>Trade Value</th><th>Target Shares</th><th>Action</th></tr></thead><tbody>
+      {% for x in opt.trades %}<tr><td>{{ x.ticker }}</td><td>{{ x.current_weight|fmt_pct }}%</td><td>{{ x.target_weight|fmt_pct }}%</td><td>{{ x.actual_weight|fmt_pct }}%</td><td>{{ x.target_value|fmt_money }}</td><td>{{ x.trade_value|fmt_money }}</td><td>{{ x.target_shares if x.target_shares is not none else 'N/A' }}</td><td>{{ x.action }}</td></tr>{% endfor %}
     </tbody></table>
-    <table><tbody><tr><td>Gross Trade Value</td><td>{{ opt.transaction_cost.gross_trade_value|fmt_money }}</td></tr><tr><td>Commission</td><td>{{ opt.transaction_cost.commission|fmt_money }}</td></tr><tr><td>Slippage</td><td>{{ opt.transaction_cost.slippage|fmt_money }}</td></tr><tr><td>Tax</td><td>{{ opt.transaction_cost.tax|fmt_money }}</td></tr><tr><td>Net Trade Value</td><td>{{ opt.transaction_cost.net_trade_value|fmt_money }}</td></tr></tbody></table>
+    <table><tbody><tr><td>Gross Trade Value</td><td>{{ opt.transaction_cost.gross_trade_value|fmt_money }}</td></tr><tr><td>Commission</td><td>{{ opt.transaction_cost.commission|fmt_money }}</td></tr><tr><td>Slippage</td><td>{{ opt.transaction_cost.slippage|fmt_money }}</td></tr><tr><td>Tax</td><td>{{ opt.transaction_cost.tax|fmt_money }}</td></tr><tr><td>Net Trade Value</td><td>{{ opt.transaction_cost.net_trade_value|fmt_money }}</td></tr><tr><td>Cash Residual after whole shares</td><td>{{ opt.transaction_cost.cash_residual|fmt_money }}</td></tr></tbody></table>
     {% elif opt.reason %}<p style="color:#b42318;"><b>Optimization Not Executed / Data Insufficient:</b> {{ opt.reason }}<br>N/A Reason: required common Daily Return Matrix, valid covariance and complete Evidence Score. Resolution: provide sufficient adjusted price observations.</p>
     {% endif %}
     {% if opt.sensitivity %}<h3>Lambda / Gamma Sensitivity</h3><table><thead><tr><th>Mode</th><th>λ</th><th>γ</th><th>CAGR</th><th>Vol</th><th>MDD</th><th>Sharpe</th><th>Max Weight</th><th>Top 5</th><th>Turnover</th></tr></thead><tbody>{% for x in opt.sensitivity %}<tr><td>{{ x.mode }}</td><td>{{ x.lambda_tracking }}</td><td>{{ x.gamma_concentration }}</td><td>{{ x.cagr|fmt_pct }}%</td><td>{{ x.volatility|fmt_pct }}%</td><td>{{ x.mdd|fmt_pct }}%</td><td>{{ x.sharpe|fmt_float }}</td><td>{{ x.maximum_weight|fmt_pct }}%</td><td>{{ x.top5_concentration|fmt_pct }}%</td><td>{{ x.turnover|fmt_pct }}%</td></tr>{% endfor %}</tbody></table>{% endif %}

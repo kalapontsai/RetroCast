@@ -5,9 +5,9 @@
 
 ## Unreleased — 文件同步（2026-09-02）
 
-- README 改以目前實作為準，補充 v2/v3 擴充分析、實際 API 與目前研究限制。
-- README 明確記錄：未指定 `weights` 且有 `shares` 時，預設使用起始市值權重；沒有 `shares` 才 fallback 為等權重。
-- SPEC 補上已完成版本與驗收狀態，避免將已完成的 F1–F6 誤列為規劃中。
+- README 重寫為目前版本的安裝、功能、API、資料格式與研究限制說明，不再混入過去版本歷史。
+- 新增根目錄 `SKILL.md`，提供 agent clone 後的檢查、API workflow、計算不變量與安全邊界。
+- 移除 `SPEC.md`；其歷史規劃與決策紀錄仍完整保留於本 CHANGELOG 的既有歷史內容。
 
 
 ## v3.1.2 — 預設權重改為「起始市值權重」+ 顯示此次權重分配（2026-09-01）
@@ -413,3 +413,26 @@ tests/test_integration_v2.py  # end-to-end Flask 測試
 - 既有 152 pytest 維持不退步
 - cache 內容不動，只 rename 檔名（mv 不是 rm，可手動 revert）
 - Frontend 既有 `report.html` 樣式不破
+# 2026-09-02 — Retirement portfolio optimisation finalisation
+
+Sharpe / Sortino / Calmar 在 §5 改為比率格式，不再套用百分比乘數；與 §6 的 1.131 / 1.044 顯示一致。
+
+| 功能 | 原本 | 修改後 |
+|---|---|---|
+| One.5 / One.6 | 共同期間計算容易截斷個別歷史 | 個別指標使用各資產完整可用歷史；共同矩陣另行標示實際期間 |
+| Evidence | 僅部分歷史證據欄位 | History / Regime / Drawdown / Observation、Evidence Factor、Full/Partial/Short 分類與 Emerging Candidate |
+| Portfolio Risk | 個別風險加權 | 使用共同日報酬 covariance 計算 Portfolio Volatility、MDD、Sharpe、Sortino、VaR、CVaR |
+| Optimization | 報酬、追蹤、集中度 | 加入交易成本與 covariance risk penalty，並檢查 2%–15% 可行性 |
+| Rebalance | 理論目標股數與交易 | 加入 No-trade threshold、實際整股權重、交易成本與剩餘現金 |
+| Retirement | 年齡風險摘要 | 每個年齡輸出 Years From Now、P10/P25/P50/P75/P90 wealth 與 depletion probability |
+
+退休 Sequence Risk 明確支援使用者指定的 age-110 終點；既有未指定終點的 1–50 年 API 邊界仍維持不變。
+
+修改檔案：
+
+- `lib/portfolio_optimization.py`
+- `lib/sequence_risk.py`
+- `app.py`
+- `templates/report.html`
+- `templates/rebalance_report.html`
+- `tests/test_portfolio_optimization.py`

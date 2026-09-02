@@ -1,0 +1,2275 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>投資組合歷史回測 + 未來 N 年情境報告 — sample_stock</title>
+<style>
+  body { font-family: Arial, "Microsoft JhengHei", "PingFang TC", sans-serif;
+         background: #f5f7fa; color: #202b3c; margin: 0; padding: 0; }
+  .wrap { max-width: 1180px; margin: 24px auto; padding: 0 18px; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 12px;
+          padding: 20px; margin: 16px 0; }
+  h1 { color: #17365d; margin: 0 0 6px; font-size: 22px; }
+  h2 { color: #17365d; border-bottom: 1px solid #e3e8ef; padding-bottom: 8px;
+       margin-top: 24px; font-size: 17px; }
+  h3 { color: #17365d; margin-top: 18px; font-size: 14px; }
+  .meta { color: #5a6a7e; font-size: 13px; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: right; font-size: 13px; }
+  th, td:first-child { text-align: left; }
+  th { background: #eef3f8; font-weight: bold; color: #17365d; }
+  tr.highlight td { background: #fff7e6; font-weight: bold; }
+  .kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+  .kpi > div { background: #f1f5f9; padding: 12px 14px; border-radius: 8px; }
+  .kpi .kpi-name { color: #5a6a7e; font-size: 11px; display: block; font-weight: normal; }
+  .kpi .kpi-value { display: block; font-size: 22px; margin-top: 4px; color: #17365d; font-weight: bold; }
+  .kpi .kpi-tip { display: block; margin-top: 4px; font-size: 10px; color: #7a8a9e; line-height: 1.35; }
+  .note { background: #fff7e6; border-left: 4px solid #d98b00;
+          padding: 12px 14px; font-size: 13px; color: #6b4f00; }
+  .card.warn { background: #fffaf0; border-color: #f0c674; }
+  .card.warn h2 { color: #8b4500; }
+  .card.warn ul { margin: 8px 0 0; padding-left: 22px; }
+  .card.warn li { margin: 6px 0; font-size: 13px; line-height: 1.6; color: #4a3000; }
+  .card.warn code { background: #f0e6d2; padding: 1px 5px; border-radius: 3px;
+                    font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+  .footer { text-align: center; color: #95a5b8; font-size: 12px; margin: 24px 0; }
+  @media print { body { background: #fff; } .card { border: none; box-shadow: none; }
+                 .kpi { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>投資組合歷史回測 + 未來 N 年情境報告</h1>
+  <div class="meta">
+    用戶名單：<b>sample_stock</b>　·
+    推估年數 N：<b>10 年</b>　·
+    目前資產：<b>7,612,549</b>（（預估終值已扣買入手續費 0.142% + 滑價 0.100%））　·
+    生成時間：<b>2026-09-02 16:12:39</b>
+    <br>
+    目前年齡：<b>50 歲</b>　·
+    退休年齡：<b>60 歲</b>　·
+    退休評估終點：<b>90 歲</b>　·
+    退休評估期：<b>40 年</b>　·
+    未來推估終點年齡：<b>60 歲</b>
+  </div>
+
+  <div class="card" style="border-left: 4px solid #1e8e3e;">
+    <h2 style="margin-top:0;">預先驗證結果（Pre-flight Check）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">
+      產報告前自動驗證 N-year consistency、退休 MC horizon、提款一致性、費用對齊、無未來洩漏等項目。
+      <b style="color:#1e8e3e;">沒有失敗項目。</b>
+    </p>
+    <table>
+      <thead><tr><th>項目</th><th>嚴重度</th><th>狀態</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td colspan="4" style="color:#1e8e3e;">沒有 FAIL / SKIP 項目。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>〇、組合起始市值</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">用「最新收盤價 × 股數」自動算出今天的組合值。</p>
+    <div class="kpi" style="grid-template-columns: repeat(3, 1fr);">
+      <div>
+        <span class="kpi-name">估值日</span>
+        <b class="kpi-value">2026-08-31</b>
+      </div>
+      <div>
+        <span class="kpi-name">組合市值</span>
+        <b class="kpi-value">7,630,972</b>
+        <span class="kpi-tip">最後收盤價 × 持有股數。</span>
+      </div>
+      <div>
+        <span class="kpi-name">市值來源</span>
+        <b class="kpi-value" style="font-size:14px">market_value</b>
+        <span class="kpi-tip">「market_value」= 自動用市值；「user_input」= 手動指定。</span>
+      </div>
+    </div>
+    <table style="margin-top:14px">
+      <thead><tr><th>股票</th><th>股數</th><th>收盤價</th><th>市值</th><th>權重</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>2412</td>
+          <td>20,000</td>
+          <td>136.00</td>
+          <td>2,720,000</td>
+          <td>35.6%</td>
+        </tr>
+        <tr>
+          <td>2330</td>
+          <td>1,000</td>
+          <td>2405.00</td>
+          <td>2,405,000</td>
+          <td>31.5%</td>
+        </tr>
+        <tr>
+          <td>2885</td>
+          <td>20,219</td>
+          <td>65.40</td>
+          <td>1,322,323</td>
+          <td>17.3%</td>
+        </tr>
+        <tr>
+          <td>1229</td>
+          <td>11,258</td>
+          <td>41.80</td>
+          <td>470,584</td>
+          <td>6.2%</td>
+        </tr>
+        <tr>
+          <td>00891</td>
+          <td>8,100</td>
+          <td>34.34</td>
+          <td>278,154</td>
+          <td>3.6%</td>
+        </tr>
+        <tr>
+          <td>5880</td>
+          <td>6,944</td>
+          <td>25.55</td>
+          <td>177,419</td>
+          <td>2.3%</td>
+        </tr>
+        <tr>
+          <td>1712</td>
+          <td>3,350</td>
+          <td>39.95</td>
+          <td>133,832</td>
+          <td>1.8%</td>
+        </tr>
+        <tr>
+          <td>00922</td>
+          <td>3,000</td>
+          <td>41.22</td>
+          <td>123,660</td>
+          <td>1.6%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>〇.五、代號驗證結果（從 FinMind TaiwanStockInfo 比對）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">自動把你寫的代號補 0 並對到正確的 stock_id。</p>
+    <table>
+      <thead><tr>
+        <th>stock_id</th><th>名稱</th><th>市場</th><th>使用者原始</th><th>備註</th>
+      </tr></thead>
+      <tbody>
+        <tr style="color:#b42318">
+          <td>00891</td>
+          <td>中信關鍵半導體</td>
+          <td>twse</td>
+          <td>00891</td>
+          <td>⚠️ 歷史 &lt; 10 年（不適合長期推估）</td>
+        </tr>
+        <tr style="color:#b42318">
+          <td>00922</td>
+          <td>國泰台灣領袖50</td>
+          <td>twse</td>
+          <td>00922</td>
+          <td>⚠️ 歷史 &lt; 10 年（不適合長期推估）</td>
+        </tr>
+        <tr >
+          <td>1229</td>
+          <td>聯華</td>
+          <td>twse</td>
+          <td>1229</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+        <tr >
+          <td>1712</td>
+          <td>興農</td>
+          <td>twse</td>
+          <td>1712</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+        <tr >
+          <td>2330</td>
+          <td>台積電</td>
+          <td>twse</td>
+          <td>2330</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+        <tr >
+          <td>2412</td>
+          <td>中華電</td>
+          <td>twse</td>
+          <td>2412</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+        <tr >
+          <td>2885</td>
+          <td>元大金</td>
+          <td>twse</td>
+          <td>2885</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+        <tr >
+          <td>5880</td>
+          <td>合庫金</td>
+          <td>twse</td>
+          <td>5880</td>
+          <td>✓ 歷史足夠</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>一、各標的歷史長度（最少 / 中位數 / 最多 觀測年數）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">看每檔股票各自有多少年歷史資料 — 太短的會拉低 N 年推估的可信度。</p>
+    <table>
+      <thead><tr>
+        <th>股票</th><th>有資料第一天</th><th>最後一天</th>
+        <th>資料點數</th><th>歷史年數</th><th>首日收盤（含息還原除權息後）</th>
+      </tr></thead>
+      <tbody>
+        <tr style="color:#b42318">
+          <td>00891 ⚠️</td>
+          <td>2021-05-28</td>
+          <td>2026-08-31</td>
+          <td>1280</td>
+          <td>5.26</td>
+          <td>15.30</td>
+        </tr>
+        <tr style="color:#b42318">
+          <td>00922 ⚠️</td>
+          <td>2023-03-27</td>
+          <td>2026-08-31</td>
+          <td>834</td>
+          <td>3.43</td>
+          <td>14.93</td>
+        </tr>
+        <tr >
+          <td>1229</td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>6586</td>
+          <td>26.66</td>
+          <td>14.05</td>
+        </tr>
+        <tr >
+          <td>1712</td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>6587</td>
+          <td>26.66</td>
+          <td>5.00</td>
+        </tr>
+        <tr >
+          <td>2330</td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>6587</td>
+          <td>26.66</td>
+          <td>178.00</td>
+        </tr>
+        <tr >
+          <td>2412</td>
+          <td>2000-10-27</td>
+          <td>2026-08-31</td>
+          <td>6316</td>
+          <td>25.84</td>
+          <td>100.50</td>
+        </tr>
+        <tr >
+          <td>2885</td>
+          <td>2002-02-04</td>
+          <td>2026-08-31</td>
+          <td>6049</td>
+          <td>24.57</td>
+          <td>12.55</td>
+        </tr>
+        <tr >
+          <td>5880</td>
+          <td>2011-04-14</td>
+          <td>2026-08-31</td>
+          <td>3608</td>
+          <td>15.38</td>
+          <td>17.30</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>一.五、各標的歷史真實績效（個股 8 欄診斷表）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">看每檔股票**自己的**完整歷史 — 不受「共同起點」或其他股票限制。每檔都是拿自己上市第一天起跳到最近收盤為止算出的價格指數報酬率。讓你能判斷：「個股本身能力」到底是強還是弱，不被「進場時機」或「其他股拖著」誤判。</p>
+    <table>
+      <thead><tr>
+        <th>股票</th>
+        <th>開始日期</th>
+        <th>結束日期</th>
+        <th>回測年數</th>
+        <th>累積總報酬率</th>
+        <th>年化報酬率</th>
+        <th>歷史最大跌幅 (MDD)</th>
+        <th>年化波動率</th>
+        <th>性價比 (Sharpe)</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><b>00891</b></td>
+          <td>2021-05-28</td>
+          <td>2026-08-31</td>
+          <td>5.26</td>
+          <td style="color:#1e8e3e">214.75%</td>
+          <td style="color:#1e8e3e">24.36%</td>
+          <td style="color:#d29922">-44.79%</td>
+          <td>26.38%</td>
+          <td style="color:">0.99</td>
+        </tr>
+        <tr>
+          <td><b>00922</b></td>
+          <td>2023-03-27</td>
+          <td>2026-08-31</td>
+          <td>3.43</td>
+          <td style="color:#1e8e3e">246.36%</td>
+          <td style="color:#1e8e3e">43.64%</td>
+          <td style="color:#d29922">-26.95%</td>
+          <td>22.93%</td>
+          <td style="color:#1e8e3e">1.75</td>
+        </tr>
+        <tr>
+          <td><b>1229</b></td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>26.66</td>
+          <td style="color:#1e8e3e">1163.93%</td>
+          <td style="color:#1e8e3e">9.98%</td>
+          <td style="color:#b42318">-82.87%</td>
+          <td>31.14%</td>
+          <td style="color:">0.47</td>
+        </tr>
+        <tr>
+          <td><b>1712</b></td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>26.66</td>
+          <td style="color:#1e8e3e">1643.20%</td>
+          <td style="color:#1e8e3e">11.32%</td>
+          <td style="color:#b42318">-62.99%</td>
+          <td>32.89%</td>
+          <td style="color:">0.50</td>
+        </tr>
+        <tr>
+          <td><b>2330</b></td>
+          <td>2000-01-04</td>
+          <td>2026-08-31</td>
+          <td>26.66</td>
+          <td style="color:#1e8e3e">2297.24%</td>
+          <td style="color:#1e8e3e">12.66%</td>
+          <td style="color:#b42318">-83.74%</td>
+          <td>32.12%</td>
+          <td style="color:">0.54</td>
+        </tr>
+        <tr>
+          <td><b>2412</b></td>
+          <td>2000-10-27</td>
+          <td>2026-08-31</td>
+          <td>25.84</td>
+          <td style="color:#1e8e3e">241.06%</td>
+          <td style="color:#1e8e3e">4.86%</td>
+          <td style="color:#b42318">-60.60%</td>
+          <td>18.43%</td>
+          <td style="color:">0.36</td>
+        </tr>
+        <tr>
+          <td><b>2885</b></td>
+          <td>2002-02-04</td>
+          <td>2026-08-31</td>
+          <td>24.57</td>
+          <td style="color:#1e8e3e">1050.48%</td>
+          <td style="color:#1e8e3e">10.45%</td>
+          <td style="color:#b42318">-63.69%</td>
+          <td>30.98%</td>
+          <td style="color:">0.48</td>
+        </tr>
+        <tr>
+          <td><b>5880</b></td>
+          <td>2011-04-14</td>
+          <td>2026-08-31</td>
+          <td>15.38</td>
+          <td style="color:#1e8e3e">223.00%</td>
+          <td style="color:#1e8e3e">7.92%</td>
+          <td style="color:#d29922">-25.35%</td>
+          <td>14.68%</td>
+          <td style="color:">0.63</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#5a6a7e; font-size:12px; margin-top:8px;">
+      註：「性價比」= (年化報酬 − 風險利率 0%) / 年化波動率，沒有設 risk-free rate。顏色門檻：MDD &lt; -50% 紅、-20%~-50% 橙；Sharpe &gt;= 1 線、&lt; 0 紅。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>一.六、各標的 N 年區間對齊績效（時間對齊比較）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">上面那表各股使用「各自上市第一天」起算 — 不同起點不能公平比。本表用「同一個N年窗口」（以全體中最末日為邊界，往前推N年）讓所有股票**使用同一個期間**，適合判斷「同樣上過幾年拼最近表現」。如果某股上市未達 N 年，會誠實標示不足，years 會反映實際觀察長度。</p>
+      <table>
+        <thead><tr>
+          <th>股票</th>
+          <th>窗口開始</th>
+          <th>窗口結束</th>
+          <th>實際年數</th>
+          <th>累積總報酬率 (10y)</th>
+          <th>年化報酬率</th>
+          <th>歷史最大跌幅 (MDD)</th>
+          <th>年化波動率</th>
+          <th>性價比 (Sharpe)</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><b>00891</b> <small style="color:#d29922;">⚠ 上市未滿 N 年</small></td>
+            <td>2021-05-28</td>
+            <td>2026-08-31</td>
+            <td>5.26 <small style="color:#5a6a7e;">/ 10y</small></td>
+            <td style="color:#1e8e3e">214.75%</td>
+            <td style="color:#1e8e3e">24.36%</td>
+            <td style="color:#d29922">-44.79%</td>
+            <td>26.38%</td>
+            <td style="color:">0.99</td>
+          </tr>
+          <tr>
+            <td><b>00922</b> <small style="color:#d29922;">⚠ 上市未滿 N 年</small></td>
+            <td>2023-03-27</td>
+            <td>2026-08-31</td>
+            <td>3.43 <small style="color:#5a6a7e;">/ 10y</small></td>
+            <td style="color:#1e8e3e">246.36%</td>
+            <td style="color:#1e8e3e">43.64%</td>
+            <td style="color:#d29922">-26.95%</td>
+            <td>22.93%</td>
+            <td style="color:#1e8e3e">1.75</td>
+          </tr>
+          <tr>
+            <td><b>1229</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">407.15%</td>
+            <td style="color:#1e8e3e">17.63%</td>
+            <td style="color:#d29922">-38.07%</td>
+            <td>20.78%</td>
+            <td style="color:">0.91</td>
+          </tr>
+          <tr>
+            <td><b>1712</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">333.15%</td>
+            <td style="color:#1e8e3e">15.79%</td>
+            <td style="color:#d29922">-25.85%</td>
+            <td>20.23%</td>
+            <td style="color:">0.85</td>
+          </tr>
+          <tr>
+            <td><b>2330</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">1600.53%</td>
+            <td style="color:#1e8e3e">32.76%</td>
+            <td style="color:#d29922">-44.93%</td>
+            <td>27.74%</td>
+            <td style="color:#1e8e3e">1.20</td>
+          </tr>
+          <tr>
+            <td><b>2412</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">67.72%</td>
+            <td style="color:#1e8e3e">5.31%</td>
+            <td style="color:">-16.41%</td>
+            <td>10.81%</td>
+            <td style="color:">0.55</td>
+          </tr>
+          <tr>
+            <td><b>2885</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">836.62%</td>
+            <td style="color:#1e8e3e">25.07%</td>
+            <td style="color:#d29922">-32.20%</td>
+            <td>21.82%</td>
+            <td style="color:#1e8e3e">1.17</td>
+          </tr>
+          <tr>
+            <td><b>5880</b></td>
+            <td>2016-08-31</td>
+            <td>2026-08-31</td>
+            <td>10.00 </td>
+            <td style="color:#1e8e3e">210.28%</td>
+            <td style="color:#1e8e3e">11.99%</td>
+            <td style="color:#d29922">-25.35%</td>
+            <td>14.54%</td>
+            <td style="color:">0.88</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="color:#5a6a7e; font-size:12px; margin-top:8px;">
+        註：N 年期間是以「所有股票最後一個交易日」為邊界、往前推 N 年。例如 N=10 則窗口為 (today - 10y) 至 today。
+        ⚠ 表示該股上市未滿 N 年，years 反映實際可觀察長度。
+        跟上一表最大差別：0050 在 23 年表報 23 年含息 CAGR 13.07%，在 N=10 表只看最近 10 年 → 可能不同。
+      </p>
+  </div>
+
+  <div class="card">
+    <h2>二、歷史真實績效：3 種回測模式比較</h2>
+    <p class="weights-info" style="color:#17365d; font-size:13px; font-weight:500; background:#f0f4f8; padding:6px 10px; border-left:3px solid #17365d; border-radius:3px; margin:6px 0;">
+      <b>此次權重：</b>（市值加權總計為1） 2412:0.356, 2330:0.315, 2885:0.173, 1229:0.062, 00891:0.036, 5880:0.023, 1712:0.018
+    </p>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">不同回測條件會得到不同答案 — 並列顯示才能看到答案的「完整範圍」。</p>
+      <h3 style="color:#17365d; margin-top:18px;">▶ 全體共同期間（最嚴格比較）</h3>
+      <p style="color:#5a6a7e; font-size:12px; margin:0 0 8px;">從「最晚掛牌的那檔股票」上市日開始算起，所有標的從同一起跑點公平競爭。</p>
+      <div class="kpi" >
+        <div>
+          <span class="kpi-name">開始日期</span>
+          <b class="kpi-value">2023-03-27</b>
+        </div>
+        <div>
+          <span class="kpi-name">結束日期</span>
+          <b class="kpi-value">2026-08-31</b>
+        </div>
+        <div>
+          <span class="kpi-name">回測年數</span>
+          <b class="kpi-value">3.43</b>
+          <span class="kpi-tip">歷史回測覆蓋的實際年數。</span>
+        </div>
+        <div>
+          <span class="kpi-name">累積總報酬率</span>
+          <b class="kpi-value">140.60%</b>
+          <span class="kpi-tip">整段期間的累積漲跌幅（未年化）。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化報酬率（年均複利）</span>
+          <b class="kpi-value">29.17%</b>
+          <span class="kpi-tip">把累積報酬攤提成「每年平均成長幾 %」。</span>
+        </div>
+        <div>
+          <span class="kpi-name">歷史最大跌幅（最大回檔）</span>
+          <b class="kpi-value">-17.62%</b>
+          <span class="kpi-tip">從最高點跌到最低點的最慘虧損幅度。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化波動率（價格震盪幅度）</span>
+          <b class="kpi-value">15.69%</b>
+          <span class="kpi-tip">數值越高代表平常股價上沖下洗越劇烈。</span>
+        </div>
+        <div>
+          <span class="kpi-name">性價比（夏普值）</span>
+          <b class="kpi-value">1.773</b>
+          <span class="kpi-tip">評估承擔波動風險是否划算；&gt;1 代表承擔風險的回報很划算。</span>
+        </div>
+      </div>
+      <h3 style="color:#17365d; margin-top:18px;">▶ 逐步加入模式（最貼近真實投資）</h3>
+      <p style="color:#5a6a7e; font-size:12px; margin:0 0 8px;">哪檔股票上市了就自動納入組合，還原資金隨時間逐步配置的真實情況。</p>
+      <div class="kpi" >
+        <div>
+          <span class="kpi-name">開始日期</span>
+          <b class="kpi-value">2000-01-04</b>
+        </div>
+        <div>
+          <span class="kpi-name">結束日期</span>
+          <b class="kpi-value">2026-08-31</b>
+        </div>
+        <div>
+          <span class="kpi-name">回測年數</span>
+          <b class="kpi-value">26.66</b>
+          <span class="kpi-tip">歷史回測覆蓋的實際年數。</span>
+        </div>
+        <div>
+          <span class="kpi-name">累積總報酬率</span>
+          <b class="kpi-value">587.19%</b>
+          <span class="kpi-tip">整段期間的累積漲跌幅（未年化）。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化報酬率（年均複利）</span>
+          <b class="kpi-value">7.50%</b>
+          <span class="kpi-tip">把累積報酬攤提成「每年平均成長幾 %」。</span>
+        </div>
+        <div>
+          <span class="kpi-name">歷史最大跌幅（最大回檔）</span>
+          <b class="kpi-value">-46.59%</b>
+          <span class="kpi-tip">從最高點跌到最低點的最慘虧損幅度。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化波動率（價格震盪幅度）</span>
+          <b class="kpi-value">12.60%</b>
+          <span class="kpi-tip">數值越高代表平常股價上沖下洗越劇烈。</span>
+        </div>
+        <div>
+          <span class="kpi-name">性價比（夏普值）</span>
+          <b class="kpi-value">0.648</b>
+          <span class="kpi-tip">評估承擔波動風險是否划算；&gt;1 代表承擔風險的回報很划算。</span>
+        </div>
+      </div>
+      <div style="margin-top:12px; padding:8px 10px; background:#f5f8fb; border-left:3px solid #4f81bd; border-radius:4px;">
+        <div style="color:#17365d; font-weight:600; font-size:13px; margin-bottom:4px;">
+          📌 最近 10 年真實績效（重正規化起點）
+        </div>
+        <div class="kpi" style="grid-template-columns: repeat(4, 1fr); font-size:12px;">
+          <div>
+            <span class="kpi-name">區間</span>
+            <b class="kpi-value" style="font-size:12px;">2016-08-31 → 2026-08-31</b>
+          </div>
+          <div>
+            <span class="kpi-name">年化報酬率 (CAGR)</span>
+            <b class="kpi-value">13.56%</b>
+          </div>
+          <div>
+            <span class="kpi-name">歷史最大回檔 (MDD)</span>
+            <b class="kpi-value">-16.47%</b>
+          </div>
+          <div>
+            <span class="kpi-name">年化波動率</span>
+            <b class="kpi-value">10.03%</b>
+          </div>
+        </div>
+        <div style="color:#5a6a7e; font-size:11px; margin-top:4px;">
+          跟上方「完整歷史」分開計算: 上市早期 (例如 0050 剛上市 2003-2007 低波動低報酬期間) 會拉低完整歷史 CAGR。
+          「最近 10 年」跳過那段起點，rebase 到 1.0 後重算，較能反映近期台股實際環境。
+        </div>
+      </div>
+      <h3 style="color:#17365d; margin-top:18px;">▶ 各標的完整歷史（單獨診斷）</h3>
+      <p style="color:#5a6a7e; font-size:12px; margin:0 0 8px;">每檔股票各自從上市第一天算到現在，用來檢視個股本身的歷史能力。</p>
+      <div class="kpi" >
+        <div>
+          <span class="kpi-name">開始日期</span>
+          <b class="kpi-value">2000-01-04</b>
+        </div>
+        <div>
+          <span class="kpi-name">結束日期</span>
+          <b class="kpi-value">2026-08-31</b>
+        </div>
+        <div>
+          <span class="kpi-name">回測年數</span>
+          <b class="kpi-value">26.66</b>
+          <span class="kpi-tip">歷史回測覆蓋的實際年數。</span>
+        </div>
+        <div>
+          <span class="kpi-name">累積總報酬率</span>
+          <b class="kpi-value">1070.93%</b>
+          <span class="kpi-tip">整段期間的累積漲跌幅（未年化）。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化報酬率（年均複利）</span>
+          <b class="kpi-value">9.67%</b>
+          <span class="kpi-tip">把累積報酬攤提成「每年平均成長幾 %」。</span>
+        </div>
+        <div>
+          <span class="kpi-name">歷史最大跌幅（最大回檔）</span>
+          <b class="kpi-value">-58.30%</b>
+          <span class="kpi-tip">從最高點跌到最低點的最慘虧損幅度。</span>
+        </div>
+        <div>
+          <span class="kpi-name">年化波動率（價格震盪幅度）</span>
+          <b class="kpi-value">17.01%</b>
+          <span class="kpi-tip">數值越高代表平常股價上沖下洗越劇烈。</span>
+        </div>
+        <div>
+          <span class="kpi-name">性價比（夏普值）</span>
+          <b class="kpi-value">0.639</b>
+          <span class="kpi-tip">評估承擔波動風險是否划算；&gt;1 代表承擔風險的回報很划算。</span>
+        </div>
+      </div>
+      <div style="margin-top:12px; padding:8px 10px; background:#f5f8fb; border-left:3px solid #4f81bd; border-radius:4px;">
+        <div style="color:#17365d; font-weight:600; font-size:13px; margin-bottom:4px;">
+          📌 最近 10 年真實績效（重正規化起點）
+        </div>
+        <div class="kpi" style="grid-template-columns: repeat(4, 1fr); font-size:12px;">
+          <div>
+            <span class="kpi-name">區間</span>
+            <b class="kpi-value" style="font-size:12px;">2016-08-31 → 2026-08-31</b>
+          </div>
+          <div>
+            <span class="kpi-name">年化報酬率 (CAGR)</span>
+            <b class="kpi-value">18.29%</b>
+          </div>
+          <div>
+            <span class="kpi-name">歷史最大回檔 (MDD)</span>
+            <b class="kpi-value">-22.94%</b>
+          </div>
+          <div>
+            <span class="kpi-name">年化波動率</span>
+            <b class="kpi-value">13.90%</b>
+          </div>
+        </div>
+        <div style="color:#5a6a7e; font-size:11px; margin-top:4px;">
+          跟上方「完整歷史」分開計算: 上市早期 (例如 0050 剛上市 2003-2007 低波動低報酬期間) 會拉低完整歷史 CAGR。
+          「最近 10 年」跳過那段起點，rebase 到 1.0 後重算，較能反映近期台股實際環境。
+        </div>
+      </div>
+  </div>
+
+  <div class="card">
+    <h2>三、未來 N 年情境推估（終值分布）</h2>
+    <div class="note">
+      取「歷史滾動 N 年收益分布」的分位數（基於 <b>dynamic</b> 模式），
+      算出 5 個情境的終值。FV = 目前資產 × (1+r)^N。<b>不模擬未來逐年路徑</b>。
+    </div>
+    <table>
+      <thead><tr>
+        <th>情境</th><th>分位數</th><th>歷史 N 年年化報酬率</th>
+        <th>目前資產</th><th>N 年後終值</th><th>資產增長倍數</th>
+      </tr></thead>
+      <tbody>
+        <tr >
+          <td title="遇上極端弱勢市場時的預估結果。">Bear</td>
+          <td>P10</td>
+          <td>5.83%</td>
+          <td>7,612,549</td>
+          <td><b>13,419,715</b></td>
+          <td>1.76x</td>
+        </tr>
+        <tr >
+          <td title="市場表現偏弱時的預估結果。">Conservative</td>
+          <td>P25</td>
+          <td>6.71%</td>
+          <td>7,612,549</td>
+          <td><b>14,568,398</b></td>
+          <td>1.91x</td>
+        </tr>
+        <tr class="highlight">
+          <td title="最符合歷史一般平均表現的中間值。">Base</td>
+          <td>P50</td>
+          <td>7.79%</td>
+          <td>7,612,549</td>
+          <td><b>16,115,523</b></td>
+          <td>2.12x</td>
+        </tr>
+        <tr >
+          <td title="市場處於順風多頭時的預估結果。">Optimistic</td>
+          <td>P75</td>
+          <td>8.90%</td>
+          <td>7,612,549</td>
+          <td><b>17,853,282</b></td>
+          <td>2.35x</td>
+        </tr>
+        <tr >
+          <td title="遇上超強大多頭行情的預估結果。">Bull</td>
+          <td>P90</td>
+          <td>10.30%</td>
+          <td>7,612,549</td>
+          <td><b>20,287,661</b></td>
+          <td>2.67x</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">歷史滾動 N 年樣本數：<b>4151</b></p>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">
+      有效樣本數：<b>4151</b>　·
+      排除樣本數：<b>0</b>　·
+      最短實際持有年數：<b>10.00 年</b>　·
+      最長實際持有年數：<b>10.03 年</b>
+    </p>
+
+  </div>
+
+  <div class="card">
+    <h2>四、Benchmark 對照組</h2>
+    <p class="hint">未指定 Benchmark（可在輸入區填寫對照組股票代號，例如 0050）</p>
+  </div>
+
+  <div class="card">
+    <h2>五、Monte Carlo 模擬<span style="font-size:12px; color:#5a6a7e; font-weight:normal; margin-left:8px;">【雙軌模型】F1 純投資累積 + F2 退休提款存活率</span></h2>
+    <div style="display:flex; gap:8px; margin:0 0 12px; font-size:12px;">
+      <span style="background:#dbeafe; color:#1e40af; padding:3px 10px; border-radius:4px; font-weight:600;">
+        F1 — 純投資累積模型
+      </span>
+      <span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:4px; font-weight:600;">
+        F2 — 退休提款 Sequence Risk 模型
+      </span>
+    </div>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 12px;">
+      F1 以歷史日股價 block bootstrap 抽出 N 條未來軌跡（無提款）；F2 加入提款 + 年金 + 一次性支出，評估退休存活率。
+      <b>本節取代歷史滾動推估</b>（同樣的問題但給出資產路徑 + 破產年齡分布）。
+    </p>
+
+    <h3 style="color:#17365d; margin-top:18px;">▶ F1 Monte Carlo（n=1000 × 10 年 · 區塊 bootstrap）</h3>
+    <table>
+      <thead><tr><th>指標</th><th>數值（NT$）</th></tr></thead>
+      <tbody>
+        <tr><td>中位終值</td><td>25,410,259</td></tr>
+        <tr><td>平均終值</td><td>26,445,458</td></tr>
+        <tr><td>P5（極端下限）</td><td>16,220,933</td></tr>
+        <tr><td>P10（養老規劃下限）</td><td>18,015,178</td></tr>
+        <tr><td>P25（保守下限）</td><td>21,064,464</td></tr>
+        <tr><td>P75（樂觀上限）</td><td>30,883,075</td></tr>
+        <tr><td>P90（養老規劃上限）</td><td>36,247,537</td></tr>
+        <tr><td>P95（極端上限）</td><td>39,852,689</td></tr>
+        <tr><td>標準差（NT$）</td><td>7,410,844</td></tr>
+        <tr><td>資產 ≥ 初始機率</td><td>100.00%</td></tr>
+        <tr><td>資產 ≤ 0 機率（破產）</td><td>0.00%</td></tr>
+        <tr><td>存活到 horizon 機率</td><td>100.00%</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px; padding:8px 0;">
+      <div style="color:#17365d; font-weight:600; font-size:13px; margin-bottom:4px;">
+        📈 未來 10 年資產路径分布 (P5/P25/P50/P75/P95, log scale)
+      </div>
+      <svg width="100%" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="font-family: Arial, sans-serif; font-size: 11px;">
+<line x1="70" y1="240.0" x2="730" y2="240.0" stroke="#e3e8ef" stroke-dasharray="2 3"/>
+<text x="64" y="243.0" text-anchor="end" fill="#5a6a7e">6,279,510</text>
+<line x1="70" y1="185.0" x2="730" y2="185.0" stroke="#e3e8ef" stroke-dasharray="2 3"/>
+<text x="64" y="188.0" text-anchor="end" fill="#5a6a7e">10,207,207</text>
+<line x1="70" y1="130.0" x2="730" y2="130.0" stroke="#e3e8ef" stroke-dasharray="2 3"/>
+<text x="64" y="133.0" text-anchor="end" fill="#5a6a7e">16,591,591</text>
+<line x1="70" y1="75.0" x2="730" y2="75.0" stroke="#e3e8ef" stroke-dasharray="2 3"/>
+<text x="64" y="78.0" text-anchor="end" fill="#5a6a7e">26,969,269</text>
+<line x1="70" y1="20.0" x2="730" y2="20.0" stroke="#e3e8ef" stroke-dasharray="2 3"/>
+<text x="64" y="23.0" text-anchor="end" fill="#5a6a7e">43,837,958</text>
+<text x="70.0" y="254" text-anchor="middle" fill="#5a6a7e">第 1 年</text>
+<text x="216.7" y="254" text-anchor="middle" fill="#5a6a7e">第 3 年</text>
+<text x="363.3" y="254" text-anchor="middle" fill="#5a6a7e">第 5 年</text>
+<text x="510.0" y="254" text-anchor="middle" fill="#5a6a7e">第 7 年</text>
+<text x="656.7" y="254" text-anchor="middle" fill="#5a6a7e">第 9 年</text>
+<text x="730.0" y="254" text-anchor="middle" fill="#5a6a7e">第 10 年</text>
+<polygon points="70.0,187.0 143.3,167.5 216.7,147.4 290.0,132.0 363.3,113.9 436.7,95.9 510.0,80.2 583.3,63.2 656.7,46.2 730.0,30.8 730.0,132.6 656.7,145.1 583.3,155.5 510.0,164.7 436.7,176.0 363.3,188.4 290.0,198.4 216.7,207.0 143.3,215.1 70.0,221.6" fill="#fbe5e5" stroke="none"/>
+<polygon points="70.0,197.5 143.3,181.5 216.7,166.1 290.0,150.4 363.3,134.6 436.7,119.8 510.0,105.4 583.3,91.8 656.7,76.0 730.0,59.7 730.0,103.0 656.7,114.7 583.3,127.2 510.0,140.6 436.7,152.6 363.3,164.9 290.0,177.6 216.7,189.0 143.3,200.5 70.0,210.2" fill="#f7c8c8" stroke="none"/>
+<polyline points="70.0,204.2 143.3,190.7 216.7,177.4 290.0,163.8 363.3,150.5 436.7,136.7 510.0,123.7 583.3,109.1 656.7,94.8 730.0,81.7" fill="none" stroke="#b42318" stroke-width="2"/>
+<line x1="70" y1="217.9" x2="730" y2="217.9" stroke="#17365d" stroke-dasharray="4 4"/>
+<text x="726" y="213.9" text-anchor="end" fill="#17365d">初始 7,630,972</text>
+<rect x="80" y="22" width="14" height="10" fill="white" stroke="#fbe5e5" stroke-width="3"/>
+<text x="98" y="31" fill="#5a6a7e">P5-P95 (90%)</text>
+<rect x="180" y="22" width="14" height="10" fill="white" stroke="#f7c8c8" stroke-width="3"/>
+<text x="198" y="31" fill="#5a6a7e">P25-P75 (50%)</text>
+<line x1="280" y1="27" x2="294" y2="27" stroke="#b42318" stroke-width="2"/>
+<text x="298" y="31" fill="#5a6a7e">中位數 P50</text>
+</svg>
+      <div style="color:#5a6a7e; font-size:11px; margin-top:4px;">
+        統計蒙地卡羅 1000 次未來路径。中位線 (深紅) 代表「中位數情境」;最外帶 (深紅背景) 代表 90% 區間。
+      </div>
+    </div>
+
+    <h3 style="color:#17365d; margin-top:24px;">▶ F2 Sequence Risk（退休提款存活率）</h3>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">
+      <b>提款時點：年初</b>　·
+      現金流順序：年初扣生活費 (annuity × 1+通膨<sup>年資</sup>) → 投資報酬 → 年金注入 → 一次性支出 → 期末資產。
+      <b>破產判定：任一年末資產 ≤ 0</b>。
+    </p>
+    <table class="compact" style="margin-bottom:12px;">
+      <thead><tr><th colspan="2">F2 本次計算條件</th></tr></thead>
+      <tbody>
+        <tr><td>初始資產</td><td>7,630,972 NT$</td></tr>
+        <tr><td>目前年齡 / 退休年齡 / 評估終點</td><td>50 / 60 / 90 歲</td></tr>
+        <tr><td>模擬 Horizon / 模擬次數</td><td>40 年 / 1000 次</td></tr>
+        <tr><td>月提款 / 提款通膨率</td><td>100,000 NT$ / 3.00%</td></tr>
+        <tr><td>月年金 / 年金調整率 / 年金開始年齡</td><td>30,000 NT$ / 2.00% / 60</td></tr>
+        <tr><td>一次性支出</td><td>無</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>指標</th><th>數值</th></tr></thead>
+      <tbody>
+        <tr><td>存活率（資產 > 0 機率）</td>
+          <td><b style="color:#1e8e3e;">99.60%</b></td></tr>
+        <tr><td>破產率（任一年末資產 ≤ 0）</td>
+          <td><b style="color:#1e8e3e;">0.40%</b></td></tr>
+        <tr><td>最早破產年齡</td>
+          <td><b style="color:#b42318;">83 歲</b></td></tr>
+        <tr><td>中位終值餘額（NT$）</td><td>507,682,436</td></tr>
+        <tr><td>65 歲存活率</td><td>100.00%</td></tr>
+        <tr><td>70 歲存活率</td><td>100.00%</td></tr>
+        <tr><td>75 歲存活率</td><td>100.00%</td></tr>
+        <tr><td>80 歲存活率</td><td>100.00%</td></tr>
+        <tr><td>85 歲存活率</td><td>99.90%</td></tr>
+        <tr><td>90 歲存活率</td><td>99.60%</td></tr>
+        <tr><td>95 歲存活率</td><td style="color:#5a6a7e;">N/A (超出 Simulation Horizon)</td></tr>
+        <tr><td>100 歲存活率</td><td style="color:#5a6a7e;">N/A (超出 Simulation Horizon)</td></tr>
+        <tr><td colspan="2" style="padding-top:8px; color:#17365d; font-weight:600;">破產年齡分布</td></tr>
+        <tr><td>&nbsp;&nbsp;83 歲破產</td>
+          <td>
+            <span style="display:inline-block; min-width:80px;">
+              25.00%  (1 次)
+            </span>
+            <span style="display:inline-block; background:#b42318; height:8px; vertical-align:middle; margin-left:6px; width:50.0px; max-width:200px;"></span>
+          </td>
+        </tr>
+        <tr><td>&nbsp;&nbsp;86 歲破產</td>
+          <td>
+            <span style="display:inline-block; min-width:80px;">
+              25.00%  (1 次)
+            </span>
+            <span style="display:inline-block; background:#b42318; height:8px; vertical-align:middle; margin-left:6px; width:50.0px; max-width:200px;"></span>
+          </td>
+        </tr>
+        <tr><td>&nbsp;&nbsp;88 歲破產</td>
+          <td>
+            <span style="display:inline-block; min-width:80px;">
+              25.00%  (1 次)
+            </span>
+            <span style="display:inline-block; background:#b42318; height:8px; vertical-align:middle; margin-left:6px; width:50.0px; max-width:200px;"></span>
+          </td>
+        </tr>
+        <tr><td>&nbsp;&nbsp;89 歲破產</td>
+          <td>
+            <span style="display:inline-block; min-width:80px;">
+              25.00%  (1 次)
+            </span>
+            <span style="display:inline-block; background:#b42318; height:8px; vertical-align:middle; margin-left:6px; width:50.0px; max-width:200px;"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <h4 style="color:#17365d; margin:16px 0 6px;">📊 破產年齡直條分布圖</h4>
+    <p class="hint">每根直條代表該破產年齡的模擬路徑數。</p>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" width="100%" height="auto" style="font-family:Arial,Microsoft JhengHei,sans-serif;font-size:11px"><rect x="56" y="24" width="640" height="194" fill="#f8fafc" stroke="#cbd5e1"/><line x1="56" y1="218.0" x2="696" y2="218.0" stroke="#e2e8f0"/><text x="50" y="222.0" text-anchor="end" fill="#475569">0</text><line x1="56" y1="24.0" x2="696" y2="24.0" stroke="#e2e8f0"/><text x="50" y="28.0" text-anchor="end" fill="#475569">1</text><rect x="56.0" y="24.0" width="156.2" height="194.0" fill="#b42318" opacity="0.82" rx="2"/><text x="134.1" y="19.0" text-anchor="middle" fill="#7f1d1d" font-weight="bold">1</text><text x="134.1" y="238" text-anchor="middle" fill="#475569">83</text><rect x="217.2" y="24.0" width="156.2" height="194.0" fill="#b42318" opacity="0.82" rx="2"/><text x="295.4" y="19.0" text-anchor="middle" fill="#7f1d1d" font-weight="bold">1</text><text x="295.4" y="238" text-anchor="middle" fill="#475569">86</text><rect x="378.5" y="24.0" width="156.2" height="194.0" fill="#b42318" opacity="0.82" rx="2"/><text x="456.6" y="19.0" text-anchor="middle" fill="#7f1d1d" font-weight="bold">1</text><text x="456.6" y="238" text-anchor="middle" fill="#475569">88</text><rect x="539.8" y="24.0" width="156.2" height="194.0" fill="#b42318" opacity="0.82" rx="2"/><text x="617.9" y="19.0" text-anchor="middle" fill="#7f1d1d" font-weight="bold">1</text><text x="617.9" y="238" text-anchor="middle" fill="#475569">89</text><text x="376.0" y="254" text-anchor="middle" fill="#475569">破產年齡（歲）</text><text x="14" y="121.0" text-anchor="middle" fill="#64748b" transform="rotate(-90,14,121.0)">破產路徑數</text></svg>
+    <div style="margin-top:12px; padding:8px 0;">
+      <div style="color:#17365d; font-weight:600; font-size:13px; margin-bottom:4px;">
+        📈 退休資產存活率 vs 年齡
+      </div>
+      <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,sans-serif;font-size:11px;"><rect x="0" y="0" width="720" height="240" fill="#fafbfc"/><line x1="60" y1="200.0" x2="690" y2="200.0" stroke="#e2e8f0" stroke-width="1"/><text x="54" y="204.0" fill="#475569" text-anchor="end">0%</text><line x1="60" y1="157.5" x2="690" y2="157.5" stroke="#e2e8f0" stroke-width="1"/><text x="54" y="161.5" fill="#475569" text-anchor="end">25%</text><line x1="60" y1="115.0" x2="690" y2="115.0" stroke="#e2e8f0" stroke-width="1"/><text x="54" y="119.0" fill="#475569" text-anchor="end">50%</text><line x1="60" y1="72.5" x2="690" y2="72.5" stroke="#e2e8f0" stroke-width="1"/><text x="54" y="76.5" fill="#475569" text-anchor="end">75%</text><line x1="60" y1="30.0" x2="690" y2="30.0" stroke="#e2e8f0" stroke-width="1"/><text x="54" y="34.0" fill="#475569" text-anchor="end">100%</text><line x1="60" y1="115.0" x2="690" y2="115.0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/><text x="686" y="113.0" fill="#94a3b8" text-anchor="end" font-size="10">ref 50%</text><line x1="60" y1="81.0" x2="690" y2="81.0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/><text x="686" y="79.0" fill="#94a3b8" text-anchor="end" font-size="10">ref 70%</text><line x1="60" y1="47.0" x2="690" y2="47.0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/><text x="686" y="45.0" fill="#94a3b8" text-anchor="end" font-size="10">ref 90%</text><line x1="60" y1="200" x2="690" y2="200" stroke="#64748b" stroke-width="1.5"/><line x1="60.0" y1="200" x2="60.0" y2="204" stroke="#64748b" stroke-width="1"/><text x="60.0" y="216" fill="#475569" text-anchor="middle">51</text><line x1="124.6" y1="200" x2="124.6" y2="204" stroke="#64748b" stroke-width="1"/><text x="124.6" y="216" fill="#475569" text-anchor="middle">55</text><line x1="205.4" y1="200" x2="205.4" y2="204" stroke="#64748b" stroke-width="1"/><text x="205.4" y="216" fill="#475569" text-anchor="middle">60</text><line x1="286.2" y1="200" x2="286.2" y2="204" stroke="#64748b" stroke-width="1"/><text x="286.2" y="216" fill="#475569" text-anchor="middle">65</text><line x1="366.9" y1="200" x2="366.9" y2="204" stroke="#64748b" stroke-width="1"/><text x="366.9" y="216" fill="#475569" text-anchor="middle">70</text><line x1="447.7" y1="200" x2="447.7" y2="204" stroke="#64748b" stroke-width="1"/><text x="447.7" y="216" fill="#475569" text-anchor="middle">75</text><line x1="528.5" y1="200" x2="528.5" y2="204" stroke="#64748b" stroke-width="1"/><text x="528.5" y="216" fill="#475569" text-anchor="middle">80</text><line x1="609.2" y1="200" x2="609.2" y2="204" stroke="#64748b" stroke-width="1"/><text x="609.2" y="216" fill="#475569" text-anchor="middle">85</text><line x1="690.0" y1="200" x2="690.0" y2="204" stroke="#64748b" stroke-width="1"/><text x="690.0" y="216" fill="#475569" text-anchor="middle">90</text><polyline points="60.0,30.0 76.2,30.0 92.3,30.0 108.5,30.0 124.6,30.0 140.8,30.0 156.9,30.0 173.1,30.0 189.2,30.0 205.4,30.0 221.5,30.0 237.7,30.0 253.8,30.0 270.0,30.0 286.2,30.0 302.3,30.0 318.5,30.0 334.6,30.0 350.8,30.0 366.9,30.0 383.1,30.0 399.2,30.0 415.4,30.0 431.5,30.0 447.7,30.0 463.8,30.0 480.0,30.0 496.2,30.0 512.3,30.0 528.5,30.0 544.6,30.0 560.8,30.0 576.9,30.0 593.1,30.2 609.2,30.2 625.4,30.2 641.5,30.3 657.7,30.3 673.8,30.5 690.0,30.7" fill="none" stroke="#1e8e3e" stroke-width="2.5" stroke-linejoin="round"/><circle cx="60.0" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="60.0" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="76.2" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="92.3" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="108.5" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="124.6" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="124.6" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="140.8" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="156.9" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="173.1" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="189.2" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="205.4" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="205.4" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="221.5" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="237.7" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="253.8" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="270.0" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="286.2" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="286.2" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="302.3" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="318.5" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="334.6" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="350.8" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="366.9" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="366.9" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="383.1" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="399.2" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="415.4" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="431.5" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="447.7" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="447.7" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="463.8" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="480.0" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="496.2" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="512.3" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="528.5" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="528.5" y="22.0" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">100.00%</text><circle cx="544.6" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="560.8" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="576.9" cy="30.0" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="593.1" cy="30.2" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="609.2" cy="30.2" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="609.2" y="22.2" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">99.90%</text><circle cx="625.4" cy="30.2" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="641.5" cy="30.3" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="657.7" cy="30.3" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="673.8" cy="30.5" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><circle cx="690.0" cy="30.7" r="4" fill="#1e8e3e" stroke="#fff" stroke-width="1.5"/><text x="690.0" y="22.7" fill="#0f172a" text-anchor="middle" font-weight="600" font-size="10">99.60%</text><text x="375.0" y="234" fill="#475569" text-anchor="middle" font-size="11">年齡（歲）</text><text x="14" y="115.0" fill="#475569" text-anchor="middle" font-size="11" transform="rotate(-90, 14, 115.0)">存活率（資產 &gt; 0 機率）</text></svg>
+      <div style="color:#5a6a7e; font-size:11px; margin-top:4px;">
+        點代表各年齡的存活率（資產 &gt; 0 機率）。點色：綠 ≥ 70%、橙 50–70%、紅 &lt; 50%。
+        虛線為 50% / 70% / 90% 參考線。
+      </div>
+    </div>
+  </div>
+
+<div class="card">
+  <h2>六、風險指標</h2>
+  <h3 style="color:#17365d; margin-top:18px;">▶ MDD 詳細（Peak / Trough / Recovery）— 使用「各標的完整歷史」模式</h3>
+  <p style="color:#5a6a7e; font-size:12px; margin:0 0 8px;">這份詳細表採用 <b>各標的完整歷史（full mode）</b>的 MDD，區間 <b>2000-01-04 → 2026-08-31</b>（26.66 年），最能反映「個股本身能承受的最大跌幅與回復能力」。上方三模式 KPI 卡另列 <code>common</code>（共同期間）與 <code>dynamic</code>（逐步加入）的 MDD 供對照。</p>
+  <table>
+    <thead><tr><th>指標</th><th>數值</th></tr></thead>
+    <tbody>
+      <tr><td>歷史最大回撤 (MDD)</td><td><b style="color:#b42318;">-58.30%</b></td></tr>
+      <tr><td>Peak Date（高點）</td><td>2000-02-11</td></tr>
+      <tr><td>Trough Date（低點）</td><td>2002-10-11</td></tr>
+      <tr><td>Recovery Date（回復點）</td><td>2008-02-22</td></tr>
+      <tr><td>回撤天數（Peak → Trough）</td><td>973 天</td></tr>
+      <tr><td>回復天數（Trough → Recovery）</td><td>1,960</td></tr>
+    </tbody>
+  </table>
+</div>
+
+  <div class="card">
+    <h2>七、風險指標（VaR / Sharpe）</h2>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 12px;">
+      F3 用歷史法算 VaR/CVaR（多 horizon × 多 confidence），F6 算 Sharpe（含無風險利率 1.5%）。
+    </p>
+    <h3 style="color:#17365d; margin-top:18px;">▶ F3 VaR / CVaR（歷史法 · 日/月/年 3 個 horizon × 95/99% confidence）</h3>
+    <table>
+      <thead><tr><th>指標</th><th>1 日</th><th>21 日（月）</th><th>252 日（年）</th></tr></thead>
+      <tbody>
+        <tr><td>95% VaR</td>
+          <td>-0.94%</td>
+          <td>-3.07%</td>
+          <td>-1.13%</td>
+        </tr>
+        <tr><td>99% VaR</td>
+          <td>-2.15%</td>
+          <td>-6.03%</td>
+          <td>-3.55%</td>
+        </tr>
+        <tr><td>95% CVaR（條件損失）</td>
+          <td>-1.68%</td>
+          <td>-4.73%</td>
+          <td>-2.76%</td>
+        </tr>
+        <tr><td>99% CVaR</td>
+          <td>-3.18%</td>
+          <td>-7.27%</td>
+          <td>-4.57%</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3 style="color:#17365d; margin-top:24px;">▶ F6 Sharpe（含無風險利率 = 1.5%）</h3>
+    <table>
+      <thead><tr><th>指標</th><th>數值</th></tr></thead>
+      <tbody>
+        <tr><td>Sharpe with Rf（使用 1.5% 無風險利率）</td>
+          <td><b>0.950</b></td></tr>
+        <tr><td>Sharpe rf=0（對照組）</td><td>1.081</td></tr>
+        <tr><td>無風險利率來源</td><td>0.015（預設台灣 10Y 公債，可覆寫）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" id="optimization">
+    <h2>Return + Risk + MDD 再平衡最佳化</h2>
+    <div class="note">
+      <b>Optimization Status: SUCCESS</b>　·　本節只使用既有含息還原價格與持倉資料；不足時不產生假 Target Weight。
+    </div>
+    <h3>Daily Return Dataset / Data Quality</h3>
+    <table><tbody>
+      <tr><td>Requested N / Actual Common Period</td><td>10 年 / 3.43 年</td></tr>
+      <tr><td>共同資料期間</td><td>2023-03-28 → 2026-08-31</td></tr>
+      <tr><td>Observation Count</td><td>833</td></tr>
+      <tr><td>Missing Count</td><td>14849</td></tr>
+      <tr><td>Valid Observation Ratio</td><td>12.65%</td></tr>
+<tr><td>Data Quality Warning</td><td style="color:#b42318">WARNING: Common period is significantly shorter than requested N-year period.</td></tr>    </tbody></table>
+    <h3>Correlation Matrix</h3><table><thead><tr><th></th><th>2330</th><th>2885</th><th>2412</th><th>00891</th><th>00922</th><th>1229</th><th>1712</th><th>5880</th></tr></thead><tbody><tr><td>2330</td><td>1.000</td><td>0.478</td><td>0.137</td><td>0.788</td><td>0.859</td><td>0.297</td><td>0.164</td><td>0.360</td></tr><tr><td>2885</td><td>0.478</td><td>1.000</td><td>0.223</td><td>0.516</td><td>0.590</td><td>0.386</td><td>0.200</td><td>0.545</td></tr><tr><td>2412</td><td>0.137</td><td>0.223</td><td>1.000</td><td>0.064</td><td>0.126</td><td>0.156</td><td>0.123</td><td>0.376</td></tr><tr><td>00891</td><td>0.788</td><td>0.516</td><td>0.064</td><td>1.000</td><td>0.926</td><td>0.350</td><td>0.185</td><td>0.339</td></tr><tr><td>00922</td><td>0.859</td><td>0.590</td><td>0.126</td><td>0.926</td><td>1.000</td><td>0.396</td><td>0.212</td><td>0.429</td></tr><tr><td>1229</td><td>0.297</td><td>0.386</td><td>0.156</td><td>0.350</td><td>0.396</td><td>1.000</td><td>0.321</td><td>0.418</td></tr><tr><td>1712</td><td>0.164</td><td>0.200</td><td>0.123</td><td>0.185</td><td>0.212</td><td>0.321</td><td>1.000</td><td>0.313</td></tr><tr><td>5880</td><td>0.360</td><td>0.545</td><td>0.376</td><td>0.339</td><td>0.429</td><td>0.418</td><td>0.313</td><td>1.000</td></tr></tbody></table>
+    <h3>Annualized Covariance Matrix</h3><table><thead><tr><th></th><th>2330</th><th>2885</th><th>2412</th><th>00891</th><th>00922</th><th>1229</th><th>1712</th><th>5880</th></tr></thead><tbody><tr><td>2330</td><td>0.09864</td><td>0.03714</td><td>0.00476</td><td>0.06693</td><td>0.06187</td><td>0.01950</td><td>0.00941</td><td>0.01676</td></tr><tr><td>2885</td><td>0.03714</td><td>0.06121</td><td>0.00610</td><td>0.03452</td><td>0.03349</td><td>0.01999</td><td>0.00902</td><td>0.01998</td></tr><tr><td>2412</td><td>0.00476</td><td>0.00610</td><td>0.01223</td><td>0.00192</td><td>0.00319</td><td>0.00360</td><td>0.00249</td><td>0.00616</td></tr><tr><td>00891</td><td>0.06693</td><td>0.03452</td><td>0.00192</td><td>0.07317</td><td>0.05747</td><td>0.01983</td><td>0.00913</td><td>0.01356</td></tr><tr><td>00922</td><td>0.06187</td><td>0.03349</td><td>0.00319</td><td>0.05747</td><td>0.05260</td><td>0.01899</td><td>0.00889</td><td>0.01456</td></tr><tr><td>1229</td><td>0.01950</td><td>0.01999</td><td>0.00360</td><td>0.01983</td><td>0.01899</td><td>0.04374</td><td>0.01228</td><td>0.01295</td></tr><tr><td>1712</td><td>0.00941</td><td>0.00902</td><td>0.00249</td><td>0.00913</td><td>0.00889</td><td>0.01228</td><td>0.03336</td><td>0.00848</td></tr><tr><td>5880</td><td>0.01676</td><td>0.01998</td><td>0.00616</td><td>0.01356</td><td>0.01456</td><td>0.01295</td><td>0.00848</td><td>0.02193</td></tr></tbody></table>
+    <h3>Current vs Optimized Portfolio Backtest</h3>
+    <table><thead><tr><th>Metric</th><th>Current</th><th>Optimized</th><th>Change / Direction</th></tr></thead><tbody>
+      <tr><td>CAGR</td><td>29.19%</td><td>28.40%</td><td>-0.79% · Higher is better</td></tr>
+      <tr><td>Volatility</td><td>15.69%</td><td>16.13%</td><td>0.44% · Lower is better</td></tr>
+      <tr><td>MDD</td><td>-17.62%</td><td>-19.96%</td><td>-2.33% · Higher is better</td></tr>
+      <tr><td>Sharpe</td><td>1.677</td><td>1.596</td><td>-0.081 · Higher is better</td></tr>
+      <tr><td>Sortino</td><td>2.474</td><td>2.296</td><td>-0.178 · Higher is better</td></tr>
+      <tr><td>Calmar</td><td>1.657</td><td>1.423</td><td>-0.233 · Higher is better</td></tr>
+      <tr><td>VaR 5%</td><td>-1.26%</td><td>-1.24%</td><td>0.02% · Higher is better</td></tr>
+      <tr><td>CVaR 5%</td><td>-2.15%</td><td>-2.30%</td><td>-0.15% · Higher is better</td></tr>
+    </tbody></table>
+    <h3>Evidence / Raw Score / Adjusted Score</h3>
+    <table><thead><tr><th>標的</th><th>History Years</th><th>Classification</th><th>Evidence</th><th>Evidence Factor</th><th>Raw Score</th><th>Adjusted Score</th><th>Candidate</th></tr></thead><tbody>
+<tr><td>00891</td><td>5.25</td><td>Partial N-Year</td><td>0.679</td><td>0.904</td><td>0.487</td><td>0.440</td><td>—</td></tr><tr><td>00922</td><td>3.43</td><td>Partial N-Year</td><td>0.556</td><td>0.867</td><td>0.927</td><td>0.803</td><td>Emerging Quality Candidate</td></tr><tr><td>1229</td><td>26.65</td><td>Full N-Year</td><td>0.950</td><td>0.985</td><td>0.118</td><td>0.116</td><td>—</td></tr><tr><td>1712</td><td>26.65</td><td>Full N-Year</td><td>0.950</td><td>0.985</td><td>0.178</td><td>0.175</td><td>—</td></tr><tr><td>2330</td><td>26.65</td><td>Full N-Year</td><td>0.950</td><td>0.985</td><td>0.145</td><td>0.143</td><td>—</td></tr><tr><td>2412</td><td>25.83</td><td>Full N-Year</td><td>0.946</td><td>0.984</td><td>0.190</td><td>0.187</td><td>—</td></tr><tr><td>2885</td><td>24.57</td><td>Full N-Year</td><td>0.942</td><td>0.983</td><td>0.180</td><td>0.177</td><td>—</td></tr><tr><td>5880</td><td>14.75</td><td>Full N-Year</td><td>0.897</td><td>0.969</td><td>0.408</td><td>0.395</td><td>—</td></tr>    </tbody></table>
+    <h3>Target Allocation / Rebalance Trade</h3>
+    <p class="meta">Constraints: Σw=1, 2% ≤ w ≤ 15%　·　No Trade Threshold: 1%　·　Balanced λ=1, γ=1</p>
+    <table><thead><tr><th>標的</th><th>Current Weight</th><th>Target Weight</th><th>Actual Weight</th><th>Target Value</th><th>Trade Value</th><th>Target Shares</th><th>Action</th></tr></thead><tbody>
+<tr><td>2330</td><td>31.52%</td><td>15.00%</td><td>14.97%</td><td>1,144,646</td><td>-1,260,354</td><td>475</td><td>SELL</td></tr><tr><td>2885</td><td>17.33%</td><td>14.65%</td><td>14.65%</td><td>1,117,937</td><td>-204,386</td><td>17093</td><td>SELL</td></tr><tr><td>2412</td><td>35.64%</td><td>15.00%</td><td>15.00%</td><td>1,144,646</td><td>-1,575,354</td><td>8416</td><td>SELL</td></tr><tr><td>00891</td><td>3.65%</td><td>14.07%</td><td>14.07%</td><td>1,073,503</td><td>795,349</td><td>31260</td><td>BUY</td></tr><tr><td>00922</td><td>1.62%</td><td>15.00%</td><td>15.00%</td><td>1,144,646</td><td>1,020,986</td><td>27769</td><td>BUY</td></tr><tr><td>1229</td><td>6.17%</td><td>7.29%</td><td>7.29%</td><td>556,252</td><td>85,668</td><td>13307</td><td>BUY</td></tr><tr><td>1712</td><td>1.75%</td><td>6.60%</td><td>6.59%</td><td>503,283</td><td>369,451</td><td>12597</td><td>BUY</td></tr><tr><td>5880</td><td>2.32%</td><td>12.40%</td><td>12.40%</td><td>946,059</td><td>768,640</td><td>37027</td><td>BUY</td></tr>    </tbody></table>
+    <table><tbody><tr><td>Gross Trade Value</td><td>6,080,188</td></tr><tr><td>Commission</td><td>8,634</td></tr><tr><td>Slippage</td><td>6,080</td></tr><tr><td>Tax</td><td>9,120</td></tr><tr><td>Net Trade Value</td><td>6,104,022</td></tr><tr><td>Cash Residual after whole shares</td><td>2,510</td></tr></tbody></table>
+<h3>Lambda / Gamma Sensitivity</h3><table><thead><tr><th>Mode</th><th>λ</th><th>γ</th><th>CAGR</th><th>Vol</th><th>MDD</th><th>Sharpe</th><th>Max Weight</th><th>Top 5</th><th>Turnover</th></tr></thead><tbody><tr><td>Conservative</td><td>2</td><td>2</td><td>27.68%</td><td>15.88%</td><td>-19.93%</td><td>1.582</td><td>15.00%</td><td>72.07%</td><td>78.98%</td></tr><tr><td>Balanced</td><td>1</td><td>1</td><td>28.40%</td><td>16.13%</td><td>-19.96%</td><td>1.596</td><td>15.00%</td><td>73.72%</td><td>79.68%</td></tr><tr><td>Growth</td><td>0.25</td><td>0.5</td><td>28.13%</td><td>16.04%</td><td>-19.57%</td><td>1.591</td><td>15.00%</td><td>75.00%</td><td>85.73%</td></tr></tbody></table><h3>Concentration Analysis</h3><table><thead><tr><th>Metric</th><th>Current</th><th>Optimized</th><th>Direction</th></tr></thead><tbody><tr><td>Maximum Single Weight</td><td>35.64%</td><td>15.00%</td><td>Lower is better</td></tr><tr><td>Top 5 Concentration</td><td>94.30%</td><td>73.72%</td><td>Lower is better</td></tr><tr><td>HHI</td><td>0.263</td><td>0.134</td><td>Lower is better</td></tr></tbody></table><h3>Historical Stress Test</h3><table><thead><tr><th>Scenario</th><th>Status / MDD</th><th>N/A Reason</th></tr></thead><tbody><tr><td>2008 Global Financial Crisis</td><td>N/A</td><td>Required historical dates are not available.</td></tr><tr><td>2020 COVID Crash</td><td>N/A</td><td>Required historical dates are not available.</td></tr><tr><td>2022 Bear Market</td><td>N/A</td><td>Required historical dates are not available.</td></tr><tr><td>High Inflation / High Rate</td><td>N/A</td><td>Macro inflation and interest-rate series are not in the existing data.</td></tr><tr><td>Technology Drawdown</td><td>N/A</td><td>No technology-specific scenario definition is present in the existing data.</td></tr></tbody></table>    <h3>Retirement Monte Carlo Comparison</h3><p class="meta">Current Portfolio vs Optimized Portfolio：N/A — Optimized F1/F2 comparison requires the same configured retirement inputs and is not inferred.</p>
+<h3>Optimization Validation / Model Audit</h3><table><tbody><tr><td>common_date_range</td><td>True</td></tr><tr><td>constraints_feasible</td><td>True</td></tr><tr><td>constraints_satisfied</td><td>True</td></tr><tr><td>covariance_valid</td><td>True</td></tr><tr><td>equity_curve_valid</td><td>True</td></tr><tr><td>max_weight</td><td>0.15</td></tr><tr><td>min_weight</td><td>0.06595273760669028</td></tr><tr><td>objective_calculated</td><td>True</td></tr><tr><td>optimizer_converged</td><td>True</td></tr><tr><td>portfolio_volatility_valid</td><td>True</td></tr><tr><td>weight_sum</td><td>1</td></tr></tbody></table>    <p class="meta">公式：Portfolio Volatility = √(w′Σw)；Portfolio MDD = min(Equity / running peak − 1)；AdjustedScore = RawScore × (0.70 + 0.30 × EvidenceScore)。</p>
+  </div>
+
+  <div class="card warn">
+    <h2>七、研究限制提醒</h2>
+    <ul>
+      <li><b>倖存者偏差提示</b>：本名單是 2026 年仍存在的持股。若用來回測 2010-2020，這段期間下市的股票已被默默排除，會高估歷史報酬。</li>
+      <li><b>未來資訊偏差提示</b>：本工具使用的權重 / 持股是「現在的決定」，不模擬「當時不知道的未來」。</li>
+      <li><b>含息還原除權息（CAGR 為總報酬）</b>：原始 close 由 FinMind <code>TaiwanStockPrice</code> 提供，搭配 <code>dividends + splits</code> 以「股數追蹤法」逐日還原（配息當日以 close 再投入、split 調整股數），故本版 CAGR 為「總報酬」，含股利再投資效果。<br><b>注：</b>「〇 組合起始市值」用「當下原始收盤價」算市值，反映現實持倉金額；回測路徑（② / ⑤ / N 年滾動表 / Benchmark）用含息還原除權息價，兩者用途不同。</li>
+      <li><b>交易成本</b>：本版已扣買入手續費 0.142% + 滑價 0.100% (按右側 inputs 設定)。F2 提領按年初扣生活費、不另抽手續費與證交稅。</li>
+      <li><b>情境推估語意</b>：P10/P50/P90 是「歷史上相同 N 年持有期間的結果分布」，<b>不是未來保證</b>。</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Generated by stock-portfolio-forecast · 本報表為歷史回測情境參考，<b>不構成投資建議</b>
+  </div>
+</div>
+  <div class="card">
+    <h2>② 歷史真實績效明細表（每月）</h2>
+    <p class="hint">每個 ticker 的逐月報酬（compound）與年算術平均。</p>
+    <p style="color:#5a6a7e; font-size:13px; margin:0 0 8px;">
+      <b>N = 10 年</b>　·
+      實際起訖：<b>2016-08-31 ~ 2026-08-31</b>　·
+      實際年數：<b>10.0 年</b>
+      （限制到最近 N 年，避免混入全歷史 23 年資料）
+    </p>
+    <h3 style="color:#17365d; margin:16px 0 6px;">📊 歷史 N 年累積報酬曲線（前 5 高）</h3>
+    <p class="hint">圖表直接使用下方明細表的月報酬複利，僅比較具完整 N 年月資料且期末累積報酬最高的 5 檔 ticker；歷史不足 N 年者不納入曲線，完整資料仍保留於下方表格。</p>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" width="100%" height="auto" style="font-family:Arial,Microsoft JhengHei,sans-serif;font-size:11px"><rect x="58" y="42" width="638" height="196" fill="#f8fafc" stroke="#cbd5e1"/><line x1="58" y1="238.0" x2="696" y2="238.0" stroke="#e2e8f0"/><text x="52" y="242.0" text-anchor="end" fill="#475569">-116%</text><line x1="58" y1="189.0" x2="696" y2="189.0" stroke="#e2e8f0"/><text x="52" y="193.0" text-anchor="end" fill="#475569">+262%</text><line x1="58" y1="140.0" x2="696" y2="140.0" stroke="#e2e8f0"/><text x="52" y="144.0" text-anchor="end" fill="#475569">+639%</text><line x1="58" y1="91.0" x2="696" y2="91.0" stroke="#e2e8f0"/><text x="52" y="95.0" text-anchor="end" fill="#475569">+1016%</text><line x1="58" y1="42.0" x2="696" y2="42.0" stroke="#e2e8f0"/><text x="52" y="46.0" text-anchor="end" fill="#475569">+1394%</text><polyline fill="none" stroke="#2563eb" stroke-width="2" points="58.0,222.8 63.3,222.4 68.6,221.9 74.0,222.3 79.3,222.4 84.6,222.1 89.9,221.9 95.2,221.9 100.5,221.5 105.8,220.8 111.2,220.4 116.5,220.0 121.8,219.8 127.1,219.8 132.4,217.9 137.8,219.1 143.1,218.9 148.4,217.0 153.7,217.6 159.0,217.5 164.3,219.1 169.6,219.3 175.0,219.8 180.3,217.6 185.6,216.9 190.9,216.4 196.2,218.5 201.6,219.2 206.9,219.2 212.2,219.5 217.5,218.2 222.8,217.7 228.1,216.7 233.5,218.4 238.8,218.2 244.1,216.6 249.4,216.7 254.7,215.7 260.0,213.7 265.4,213.2 270.7,211.3 276.0,212.1 281.3,212.4 286.6,215.6 291.9,213.3 297.2,214.2 302.6,212.7 307.9,204.3 313.2,204.2 318.5,203.7 323.8,203.8 329.1,200.2 334.5,196.5 339.8,192.0 345.1,190.9 350.4,192.3 355.7,191.3 361.1,191.5 366.4,191.7 371.7,192.8 377.0,190.3 382.3,192.8 387.6,192.0 392.9,191.6 398.3,190.2 403.6,188.6 408.9,191.0 414.2,191.5 419.5,195.9 424.8,194.3 430.2,200.5 435.5,198.1 440.8,198.4 446.1,204.5 451.4,206.9 456.8,199.5 462.1,202.6 467.4,197.1 472.7,197.9 478.0,196.3 483.3,198.6 488.7,194.4 494.0,193.1 499.3,193.9 504.6,195.1 509.9,197.0 515.2,196.6 520.5,193.0 525.9,191.8 531.2,189.2 536.5,184.6 541.8,178.0 547.1,177.2 552.5,174.9 557.8,164.1 563.1,166.5 568.4,165.7 573.7,164.7 579.0,159.3 584.4,161.8 589.7,156.0 595.0,151.5 600.3,158.6 605.6,168.2 610.9,168.4 616.2,164.0 621.6,157.1 626.9,149.6 632.2,149.6 637.5,138.8 642.8,124.3 648.1,128.8 653.5,120.6 658.8,103.9 664.1,87.5 669.4,105.0 674.7,77.1 680.0,60.7 685.4,56.6 690.7,55.5 696.0,57.0"/><text x="66" y="35" fill="#2563eb" font-weight="bold">2330</text><polyline fill="none" stroke="#16a34a" stroke-width="2" points="58.0,223.2 63.3,223.3 68.6,222.6 74.0,222.9 79.3,222.4 84.6,221.9 89.9,221.3 95.2,221.5 100.5,221.4 105.8,221.2 111.2,220.8 116.5,221.3 121.8,221.2 127.1,221.2 132.4,220.8 137.8,220.2 143.1,220.4 148.4,220.1 153.7,221.1 159.0,220.9 164.3,219.9 169.6,220.0 175.0,220.2 180.3,220.0 185.6,218.4 190.9,217.8 196.2,219.0 201.6,218.2 206.9,218.5 212.2,216.7 217.5,216.2 222.8,216.1 228.1,215.7 233.5,215.9 238.8,214.9 244.1,216.2 249.4,215.6 254.7,215.1 260.0,214.4 265.4,213.6 270.7,213.1 276.0,213.7 281.3,214.3 286.6,218.4 291.9,216.6 297.2,217.6 302.6,216.2 307.9,215.6 313.2,215.2 318.5,215.8 323.8,215.9 329.1,214.4 334.5,212.7 339.8,213.5 345.1,212.0 350.4,210.5 355.7,206.6 361.1,207.0 366.4,205.6 371.7,207.3 377.0,207.7 382.3,208.1 387.6,208.1 392.9,209.2 398.3,207.4 403.6,207.4 408.9,207.9 414.2,206.1 419.5,206.4 424.8,208.5 430.2,213.7 435.5,213.4 440.8,213.0 446.1,213.9 451.4,213.7 456.8,210.4 462.1,211.4 467.4,210.5 472.7,210.3 478.0,210.7 483.3,210.4 488.7,209.0 494.0,209.9 499.3,208.4 504.6,208.4 509.9,207.7 515.2,208.5 520.5,206.6 525.9,204.8 531.2,205.4 536.5,205.0 541.8,201.6 547.1,201.3 552.5,200.2 557.8,199.8 563.1,198.9 568.4,199.9 573.7,200.2 579.0,199.3 584.4,198.4 589.7,197.6 595.0,196.9 600.3,194.6 605.6,198.2 610.9,200.8 616.2,200.5 621.6,197.4 626.9,200.7 632.2,199.3 637.5,196.6 642.8,197.0 648.1,195.2 653.5,191.6 658.8,187.3 664.1,180.5 669.4,185.4 674.7,177.0 680.0,168.7 685.4,161.8 690.7,159.1 696.0,162.1"/><text x="171" y="35" fill="#16a34a" font-weight="bold">2885</text><polyline fill="none" stroke="#d97706" stroke-width="2" points="58.0,223.0 63.3,222.6 68.6,222.7 74.0,222.7 79.3,222.7 84.6,222.6 89.9,221.9 95.2,222.1 100.5,222.4 105.8,222.1 111.2,222.2 116.5,223.1 121.8,222.1 127.1,221.1 132.4,220.6 137.8,220.8 143.1,221.4 148.4,221.4 153.7,221.5 159.0,221.1 164.3,221.3 169.6,221.1 175.0,221.1 180.3,220.8 185.6,221.1 190.9,221.1 196.2,221.4 201.6,221.5 206.9,221.5 212.2,221.4 217.5,221.1 222.8,220.2 228.1,219.7 233.5,217.9 238.8,217.7 244.1,219.8 249.4,219.9 254.7,219.9 260.0,219.7 265.4,219.7 270.7,219.6 276.0,219.5 281.3,219.2 286.6,219.6 291.9,219.7 297.2,220.2 302.6,220.3 307.9,218.9 313.2,217.7 318.5,218.9 323.8,219.1 329.1,217.8 334.5,217.4 339.8,218.3 345.1,217.5 350.4,216.0 355.7,216.6 361.1,217.2 366.4,216.5 371.7,216.1 377.0,216.2 382.3,214.8 387.6,214.9 392.9,211.4 398.3,211.6 403.6,211.7 408.9,208.1 414.2,206.8 419.5,208.9 424.8,207.3 430.2,209.5 435.5,205.8 440.8,196.8 446.1,202.6 451.4,205.3 456.8,203.0 462.1,204.5 467.4,202.4 472.7,201.8 478.0,203.3 483.3,204.0 488.7,205.4 494.0,205.2 499.3,204.7 504.6,204.5 509.9,204.4 515.2,204.5 520.5,203.3 525.9,202.8 531.2,202.6 536.5,199.5 541.8,202.6 547.1,200.9 552.5,200.3 557.8,198.0 563.1,196.4 568.4,197.7 573.7,198.9 579.0,199.9 584.4,196.9 589.7,198.7 595.0,197.6 600.3,194.6 605.6,199.8 610.9,201.4 616.2,198.9 621.6,199.9 626.9,200.4 632.2,199.5 637.5,197.8 642.8,199.1 648.1,199.0 653.5,198.2 658.8,196.8 664.1,196.9 669.4,197.7 674.7,199.5 680.0,202.4 685.4,202.1 690.7,202.3 696.0,201.5"/><text x="276" y="35" fill="#d97706" font-weight="bold">1712</text><polyline fill="none" stroke="#9333ea" stroke-width="2" points="58.0,223.1 63.3,223.2 68.6,223.2 74.0,223.1 79.3,223.1 84.6,222.8 89.9,222.5 95.2,222.1 100.5,221.9 105.8,221.7 111.2,221.1 116.5,220.8 121.8,221.4 127.1,221.6 132.4,221.0 137.8,220.9 143.1,220.7 148.4,220.0 153.7,220.3 159.0,220.2 164.3,220.1 169.6,219.7 175.0,219.6 180.3,218.8 185.6,219.2 190.9,218.9 196.2,220.0 201.6,219.5 206.9,219.7 212.2,219.0 217.5,218.4 222.8,218.0 228.1,217.1 233.5,217.1 238.8,216.9 244.1,216.7 249.4,217.6 254.7,217.1 260.0,216.7 265.4,216.9 270.7,216.9 276.0,216.9 281.3,216.7 286.6,219.1 291.9,217.5 297.2,217.2 302.6,216.9 307.9,216.3 313.2,217.5 318.5,218.0 323.8,218.3 329.1,217.3 334.5,217.3 339.8,218.4 345.1,217.6 350.4,216.5 355.7,216.3 361.1,216.7 366.4,216.4 371.7,215.9 377.0,215.4 382.3,215.7 387.6,215.2 392.9,214.2 398.3,212.6 403.6,211.7 408.9,211.7 414.2,208.8 419.5,209.8 424.8,210.1 430.2,211.3 435.5,210.8 440.8,210.6 446.1,211.9 451.4,213.0 456.8,211.5 462.1,212.1 467.4,211.7 472.7,211.5 478.0,212.0 483.3,211.4 488.7,210.3 494.0,210.2 499.3,209.0 504.6,211.9 509.9,212.5 515.2,212.9 520.5,211.2 525.9,211.4 531.2,212.6 536.5,212.1 541.8,211.9 547.1,211.9 552.5,212.5 557.8,212.1 563.1,211.3 568.4,212.2 573.7,212.2 579.0,212.8 584.4,213.1 589.7,213.6 595.0,213.6 600.3,213.4 605.6,213.9 610.9,213.6 616.2,213.9 621.6,213.2 626.9,212.6 632.2,214.2 637.5,213.3 642.8,214.2 648.1,214.1 653.5,213.6 658.8,214.3 664.1,213.9 669.4,214.4 674.7,214.9 680.0,215.0 685.4,213.1 690.7,210.6 696.0,212.5"/><text x="66" y="22" fill="#9333ea" font-weight="bold">5880</text><polyline fill="none" stroke="#dc2626" stroke-width="2" points="58.0,223.1 63.3,223.5 68.6,223.7 74.0,223.8 79.3,224.5 84.6,224.4 89.9,224.4 95.2,224.3 100.5,224.4 105.8,223.8 111.2,223.7 116.5,224.4 121.8,224.1 127.1,224.1 132.4,224.3 137.8,224.3 143.1,224.0 148.4,223.7 153.7,223.6 159.0,223.2 164.3,223.2 169.6,223.6 175.0,223.5 180.3,224.0 185.6,223.7 190.9,223.5 196.2,223.6 201.6,223.9 206.9,223.2 212.2,223.9 217.5,223.9 222.8,223.6 228.1,223.4 233.5,223.2 238.8,223.2 244.1,223.7 249.4,223.6 254.7,223.4 260.0,223.3 265.4,223.2 270.7,223.5 276.0,223.7 281.3,223.7 286.6,223.8 291.9,223.6 297.2,223.5 302.6,222.7 307.9,223.6 313.2,223.7 318.5,223.9 323.8,223.9 329.1,223.7 334.5,223.6 339.8,223.7 345.1,223.6 350.4,223.4 355.7,223.1 361.1,223.1 366.4,223.1 371.7,223.0 377.0,223.3 382.3,223.5 387.6,223.5 392.9,223.3 398.3,222.8 403.6,222.7 408.9,221.9 414.2,221.6 419.5,221.2 424.8,221.6 430.2,222.2 435.5,222.2 440.8,222.3 446.1,223.1 451.4,223.4 456.8,223.1 462.1,223.2 467.4,223.2 472.7,222.9 478.0,222.5 483.3,221.6 488.7,221.7 494.0,222.8 499.3,222.8 504.6,222.8 509.9,222.8 515.2,222.8 520.5,222.5 525.9,222.4 531.2,222.5 536.5,222.3 541.8,221.7 547.1,221.9 552.5,221.5 557.8,221.8 563.1,222.2 568.4,221.9 573.7,221.8 579.0,222.2 584.4,222.1 589.7,222.0 595.0,221.9 600.3,221.5 605.6,221.4 610.9,221.3 616.2,221.3 621.6,220.7 626.9,221.4 632.2,221.0 637.5,220.9 642.8,221.2 648.1,221.2 653.5,221.2 658.8,220.9 664.1,220.8 669.4,220.9 674.7,220.6 680.0,220.5 685.4,220.0 690.7,220.2 696.0,220.6"/><text x="171" y="22" fill="#dc2626" font-weight="bold">2412</text><text x="58.0" y="260" text-anchor="middle" fill="#475569">2016-08</text><text x="377.0" y="260" text-anchor="middle" fill="#475569">2021-08</text><text x="696.0" y="260" text-anchor="middle" fill="#475569">2026-08</text><text x="377.0" y="275" text-anchor="middle" fill="#475569">月份（N=10 年）</text></svg>
+    <details style="margin-bottom:12px;"><summary><b>00891</b> (2021–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">1.31%</td>
+              <td style="text-align:right;">0.32%</td>
+              <td style="text-align:right;">1.80%</td>
+              <td style="text-align:right;">0.44%</td>
+              <td style="text-align:right;">-1.57%</td>
+              <td style="text-align:right;">0.64%</td>
+              <td style="text-align:right;">4.70%</td>
+              <td style="text-align:right;">7.34%</td>
+            <td style="text-align:right;font-weight:bold;">1.87%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">-8.02%</td>
+              <td style="text-align:right;">-4.91%</td>
+              <td style="text-align:right;">-3.68%</td>
+              <td style="text-align:right;">-11.74%</td>
+              <td style="text-align:right;">5.40%</td>
+              <td style="text-align:right;">-17.16%</td>
+              <td style="text-align:right;">2.61%</td>
+              <td style="text-align:right;">-1.36%</td>
+              <td style="text-align:right;">-15.22%</td>
+              <td style="text-align:right;">-0.71%</td>
+              <td style="text-align:right;">20.74%</td>
+              <td style="text-align:right;">-8.04%</td>
+            <td style="text-align:right;font-weight:bold;">-3.51%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">15.27%</td>
+              <td style="text-align:right;">2.79%</td>
+              <td style="text-align:right;">4.50%</td>
+              <td style="text-align:right;">-7.28%</td>
+              <td style="text-align:right;">7.93%</td>
+              <td style="text-align:right;">2.45%</td>
+              <td style="text-align:right;">-0.29%</td>
+              <td style="text-align:right;">-1.82%</td>
+              <td style="text-align:right;">0.44%</td>
+              <td style="text-align:right;">4.27%</td>
+              <td style="text-align:right;">9.82%</td>
+              <td style="text-align:right;">5.47%</td>
+            <td style="text-align:right;font-weight:bold;">3.63%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">0.55%</td>
+              <td style="text-align:right;">6.31%</td>
+              <td style="text-align:right;">4.05%</td>
+              <td style="text-align:right;">-5.10%</td>
+              <td style="text-align:right;">4.16%</td>
+              <td style="text-align:right;">9.88%</td>
+              <td style="text-align:right;">-7.37%</td>
+              <td style="text-align:right;">0.44%</td>
+              <td style="text-align:right;">-3.26%</td>
+              <td style="text-align:right;">2.30%</td>
+              <td style="text-align:right;">-6.53%</td>
+              <td style="text-align:right;">7.10%</td>
+            <td style="text-align:right;font-weight:bold;">1.04%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">2.25%</td>
+              <td style="text-align:right;">-2.36%</td>
+              <td style="text-align:right;">-10.59%</td>
+              <td style="text-align:right;">-2.70%</td>
+              <td style="text-align:right;">1.07%</td>
+              <td style="text-align:right;">4.87%</td>
+              <td style="text-align:right;">4.88%</td>
+              <td style="text-align:right;">-1.08%</td>
+              <td style="text-align:right;">4.48%</td>
+              <td style="text-align:right;">8.73%</td>
+              <td style="text-align:right;">-2.17%</td>
+              <td style="text-align:right;">3.05%</td>
+            <td style="text-align:right;font-weight:bold;">0.87%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">17.74%</td>
+              <td style="text-align:right;">7.79%</td>
+              <td style="text-align:right;">-8.53%</td>
+              <td style="text-align:right;">33.58%</td>
+              <td style="text-align:right;">16.48%</td>
+              <td style="text-align:right;">3.63%</td>
+              <td style="text-align:right;">-11.13%</td>
+              <td style="text-align:right;">3.43%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">7.87%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>00922</b> (2023–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">0.20%</td>
+              <td style="text-align:right;">-2.81%</td>
+              <td style="text-align:right;">7.08%</td>
+              <td style="text-align:right;">3.47%</td>
+              <td style="text-align:right;">3.54%</td>
+              <td style="text-align:right;">-2.70%</td>
+              <td style="text-align:right;">-1.91%</td>
+              <td style="text-align:right;">-5.53%</td>
+              <td style="text-align:right;">8.38%</td>
+              <td style="text-align:right;">3.68%</td>
+            <td style="text-align:right;font-weight:bold;">1.34%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">-0.41%</td>
+              <td style="text-align:right;">6.36%</td>
+              <td style="text-align:right;">6.09%</td>
+              <td style="text-align:right;">-0.16%</td>
+              <td style="text-align:right;">5.43%</td>
+              <td style="text-align:right;">9.60%</td>
+              <td style="text-align:right;">-2.65%</td>
+              <td style="text-align:right;">0.61%</td>
+              <td style="text-align:right;">0.98%</td>
+              <td style="text-align:right;">-1.06%</td>
+              <td style="text-align:right;">-2.52%</td>
+              <td style="text-align:right;">4.26%</td>
+            <td style="text-align:right;font-weight:bold;">2.21%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">1.93%</td>
+              <td style="text-align:right;">-1.76%</td>
+              <td style="text-align:right;">-11.92%</td>
+              <td style="text-align:right;">-3.33%</td>
+              <td style="text-align:right;">5.71%</td>
+              <td style="text-align:right;">5.65%</td>
+              <td style="text-align:right;">6.31%</td>
+              <td style="text-align:right;">2.45%</td>
+              <td style="text-align:right;">8.41%</td>
+              <td style="text-align:right;">4.65%</td>
+              <td style="text-align:right;">-3.32%</td>
+              <td style="text-align:right;">4.48%</td>
+            <td style="text-align:right;font-weight:bold;">1.61%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">10.00%</td>
+              <td style="text-align:right;">12.00%</td>
+              <td style="text-align:right;">-15.83%</td>
+              <td style="text-align:right;">25.91%</td>
+              <td style="text-align:right;">17.21%</td>
+              <td style="text-align:right;">4.06%</td>
+              <td style="text-align:right;">-5.38%</td>
+              <td style="text-align:right;">5.61%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">6.70%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>1229</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">0.72%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">1.90%</td>
+              <td style="text-align:right;">2.80%</td>
+              <td style="text-align:right;">0.23%</td>
+            <td style="text-align:right;font-weight:bold;">1.13%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">6.12%</td>
+              <td style="text-align:right;">0.21%</td>
+              <td style="text-align:right;">8.53%</td>
+              <td style="text-align:right;">7.47%</td>
+              <td style="text-align:right;">1.46%</td>
+              <td style="text-align:right;">1.62%</td>
+              <td style="text-align:right;">-0.35%</td>
+              <td style="text-align:right;">-1.96%</td>
+              <td style="text-align:right;">6.90%</td>
+              <td style="text-align:right;">8.66%</td>
+              <td style="text-align:right;">2.81%</td>
+              <td style="text-align:right;">11.25%</td>
+            <td style="text-align:right;font-weight:bold;">4.39%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">3.14%</td>
+              <td style="text-align:right;">0.40%</td>
+              <td style="text-align:right;">3.43%</td>
+              <td style="text-align:right;">-3.32%</td>
+              <td style="text-align:right;">1.06%</td>
+              <td style="text-align:right;">-1.44%</td>
+              <td style="text-align:right;">4.64%</td>
+              <td style="text-align:right;">-7.72%</td>
+              <td style="text-align:right;">-3.16%</td>
+              <td style="text-align:right;">-13.74%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">-2.63%</td>
+            <td style="text-align:right;font-weight:bold;">-1.61%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">1.69%</td>
+              <td style="text-align:right;">4.98%</td>
+              <td style="text-align:right;">-100.00%</td>
+              <td style="text-align:right;">0.74%</td>
+              <td style="text-align:right;">6.93%</td>
+              <td style="text-align:right;">3.17%</td>
+              <td style="text-align:right;">4.55%</td>
+              <td style="text-align:right;">-13.55%</td>
+              <td style="text-align:right;">-0.30%</td>
+              <td style="text-align:right;">2.82%</td>
+              <td style="text-align:right;">2.60%</td>
+              <td style="text-align:right;">3.94%</td>
+            <td style="text-align:right;font-weight:bold;">-6.87%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">2.03%</td>
+              <td style="text-align:right;">0.80%</td>
+              <td style="text-align:right;">-1.97%</td>
+              <td style="text-align:right;">15.70%</td>
+              <td style="text-align:right;">-4.18%</td>
+              <td style="text-align:right;">2.91%</td>
+              <td style="text-align:right;">10.35%</td>
+              <td style="text-align:right;">-10.34%</td>
+              <td style="text-align:right;">-5.35%</td>
+              <td style="text-align:right;">0.38%</td>
+              <td style="text-align:right;">3.13%</td>
+              <td style="text-align:right;">3.40%</td>
+            <td style="text-align:right;font-weight:bold;">1.40%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">-5.05%</td>
+              <td style="text-align:right;">4.33%</td>
+              <td style="text-align:right;">12.20%</td>
+              <td style="text-align:right;">4.01%</td>
+              <td style="text-align:right;">-1.93%</td>
+              <td style="text-align:right;">3.52%</td>
+              <td style="text-align:right;">5.00%</td>
+              <td style="text-align:right;">0.19%</td>
+              <td style="text-align:right;">6.46%</td>
+              <td style="text-align:right;">-0.36%</td>
+              <td style="text-align:right;">3.05%</td>
+              <td style="text-align:right;">7.65%</td>
+            <td style="text-align:right;font-weight:bold;">3.26%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">-1.29%</td>
+              <td style="text-align:right;">9.66%</td>
+              <td style="text-align:right;">-4.18%</td>
+              <td style="text-align:right;">-12.46%</td>
+              <td style="text-align:right;">2.67%</td>
+              <td style="text-align:right;">-2.77%</td>
+              <td style="text-align:right;">6.77%</td>
+              <td style="text-align:right;">-4.84%</td>
+              <td style="text-align:right;">-11.05%</td>
+              <td style="text-align:right;">-8.19%</td>
+              <td style="text-align:right;">9.77%</td>
+              <td style="text-align:right;">-1.96%</td>
+            <td style="text-align:right;font-weight:bold;">-1.49%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">3.59%</td>
+              <td style="text-align:right;">4.82%</td>
+              <td style="text-align:right;">2.94%</td>
+              <td style="text-align:right;">8.93%</td>
+              <td style="text-align:right;">2.13%</td>
+              <td style="text-align:right;">8.83%</td>
+              <td style="text-align:right;">-5.75%</td>
+              <td style="text-align:right;">-4.23%</td>
+              <td style="text-align:right;">1.96%</td>
+              <td style="text-align:right;">-0.80%</td>
+              <td style="text-align:right;">10.50%</td>
+              <td style="text-align:right;">-2.49%</td>
+            <td style="text-align:right;font-weight:bold;">2.54%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">-2.70%</td>
+              <td style="text-align:right;">0.92%</td>
+              <td style="text-align:right;">3.66%</td>
+              <td style="text-align:right;">-2.21%</td>
+              <td style="text-align:right;">2.11%</td>
+              <td style="text-align:right;">0.74%</td>
+              <td style="text-align:right;">-8.35%</td>
+              <td style="text-align:right;">0.64%</td>
+              <td style="text-align:right;">-2.06%</td>
+              <td style="text-align:right;">-3.08%</td>
+              <td style="text-align:right;">-2.01%</td>
+              <td style="text-align:right;">-13.48%</td>
+            <td style="text-align:right;font-weight:bold;">-2.15%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">-2.17%</td>
+              <td style="text-align:right;">4.84%</td>
+              <td style="text-align:right;">-6.25%</td>
+              <td style="text-align:right;">-10.36%</td>
+              <td style="text-align:right;">3.55%</td>
+              <td style="text-align:right;">-4.97%</td>
+              <td style="text-align:right;">5.58%</td>
+              <td style="text-align:right;">9.25%</td>
+              <td style="text-align:right;">-1.81%</td>
+              <td style="text-align:right;">-0.92%</td>
+              <td style="text-align:right;">-0.73%</td>
+              <td style="text-align:right;">-0.73%</td>
+            <td style="text-align:right;font-weight:bold;">-0.39%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">-3.36%</td>
+              <td style="text-align:right;">-2.39%</td>
+              <td style="text-align:right;">0.45%</td>
+              <td style="text-align:right;">-8.32%</td>
+              <td style="text-align:right;">-3.39%</td>
+              <td style="text-align:right;">7.64%</td>
+              <td style="text-align:right;">-6.05%</td>
+              <td style="text-align:right;">3.59%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">-1.48%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>1712</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">2.66%</td>
+              <td style="text-align:right;">-0.97%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">-0.00%</td>
+            <td style="text-align:right;font-weight:bold;">0.34%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">0.98%</td>
+              <td style="text-align:right;">5.18%</td>
+              <td style="text-align:right;">-0.92%</td>
+              <td style="text-align:right;">-2.48%</td>
+              <td style="text-align:right;">2.23%</td>
+              <td style="text-align:right;">-0.62%</td>
+              <td style="text-align:right;">-6.58%</td>
+              <td style="text-align:right;">7.38%</td>
+              <td style="text-align:right;">7.81%</td>
+              <td style="text-align:right;">2.90%</td>
+              <td style="text-align:right;">-1.13%</td>
+              <td style="text-align:right;">-3.70%</td>
+            <td style="text-align:right;font-weight:bold;">0.92%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">-0.59%</td>
+              <td style="text-align:right;">-0.30%</td>
+              <td style="text-align:right;">2.69%</td>
+              <td style="text-align:right;">-1.45%</td>
+              <td style="text-align:right;">1.47%</td>
+              <td style="text-align:right;">0.29%</td>
+              <td style="text-align:right;">2.03%</td>
+              <td style="text-align:right;">-1.99%</td>
+              <td style="text-align:right;">-0.29%</td>
+              <td style="text-align:right;">-2.33%</td>
+              <td style="text-align:right;">-0.30%</td>
+              <td style="text-align:right;">0.00%</td>
+            <td style="text-align:right;font-weight:bold;">-0.06%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">0.60%</td>
+              <td style="text-align:right;">2.08%</td>
+              <td style="text-align:right;">5.81%</td>
+              <td style="text-align:right;">3.57%</td>
+              <td style="text-align:right;">11.14%</td>
+              <td style="text-align:right;">0.72%</td>
+              <td style="text-align:right;">-11.14%</td>
+              <td style="text-align:right;">-0.53%</td>
+              <td style="text-align:right;">-0.54%</td>
+              <td style="text-align:right;">1.62%</td>
+              <td style="text-align:right;">-0.27%</td>
+              <td style="text-align:right;">1.06%</td>
+            <td style="text-align:right;font-weight:bold;">1.18%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">0.53%</td>
+              <td style="text-align:right;">1.31%</td>
+              <td style="text-align:right;">-1.81%</td>
+              <td style="text-align:right;">-0.79%</td>
+              <td style="text-align:right;">-3.45%</td>
+              <td style="text-align:right;">-0.27%</td>
+              <td style="text-align:right;">8.54%</td>
+              <td style="text-align:right;">7.11%</td>
+              <td style="text-align:right;">-6.64%</td>
+              <td style="text-align:right;">-1.02%</td>
+              <td style="text-align:right;">7.69%</td>
+              <td style="text-align:right;">2.38%</td>
+            <td style="text-align:right;font-weight:bold;">1.13%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">-4.88%</td>
+              <td style="text-align:right;">4.65%</td>
+              <td style="text-align:right;">7.94%</td>
+              <td style="text-align:right;">-3.03%</td>
+              <td style="text-align:right;">-3.12%</td>
+              <td style="text-align:right;">3.69%</td>
+              <td style="text-align:right;">2.22%</td>
+              <td style="text-align:right;">-0.43%</td>
+              <td style="text-align:right;">6.77%</td>
+              <td style="text-align:right;">-0.41%</td>
+              <td style="text-align:right;">17.04%</td>
+              <td style="text-align:right;">-0.88%</td>
+            <td style="text-align:right;font-weight:bold;">2.46%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">-0.71%</td>
+              <td style="text-align:right;">15.15%</td>
+              <td style="text-align:right;">4.49%</td>
+              <td style="text-align:right;">-6.96%</td>
+              <td style="text-align:right;">5.73%</td>
+              <td style="text-align:right;">-7.53%</td>
+              <td style="text-align:right;">13.68%</td>
+              <td style="text-align:right;">30.09%</td>
+              <td style="text-align:right;">-14.76%</td>
+              <td style="text-align:right;">-8.27%</td>
+              <td style="text-align:right;">7.46%</td>
+              <td style="text-align:right;">-4.46%</td>
+            <td style="text-align:right;font-weight:bold;">2.83%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">6.58%</td>
+              <td style="text-align:right;">1.93%</td>
+              <td style="text-align:right;">-4.55%</td>
+              <td style="text-align:right;">-2.12%</td>
+              <td style="text-align:right;">-4.46%</td>
+              <td style="text-align:right;">0.85%</td>
+              <td style="text-align:right;">1.68%</td>
+              <td style="text-align:right;">0.69%</td>
+              <td style="text-align:right;">0.14%</td>
+              <td style="text-align:right;">-0.14%</td>
+              <td style="text-align:right;">3.56%</td>
+              <td style="text-align:right;">1.72%</td>
+            <td style="text-align:right;font-weight:bold;">0.49%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">0.39%</td>
+              <td style="text-align:right;">9.33%</td>
+              <td style="text-align:right;">-8.29%</td>
+              <td style="text-align:right;">4.91%</td>
+              <td style="text-align:right;">1.72%</td>
+              <td style="text-align:right;">6.54%</td>
+              <td style="text-align:right;">4.09%</td>
+              <td style="text-align:right;">-3.28%</td>
+              <td style="text-align:right;">-3.05%</td>
+              <td style="text-align:right;">-2.68%</td>
+              <td style="text-align:right;">8.25%</td>
+              <td style="text-align:right;">-4.53%</td>
+            <td style="text-align:right;font-weight:bold;">1.12%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">3.01%</td>
+              <td style="text-align:right;">7.75%</td>
+              <td style="text-align:right;">-12.62%</td>
+              <td style="text-align:right;">-4.42%</td>
+              <td style="text-align:right;">7.24%</td>
+              <td style="text-align:right;">-2.79%</td>
+              <td style="text-align:right;">-1.32%</td>
+              <td style="text-align:right;">2.67%</td>
+              <td style="text-align:right;">4.61%</td>
+              <td style="text-align:right;">-3.62%</td>
+              <td style="text-align:right;">0.47%</td>
+              <td style="text-align:right;">2.10%</td>
+            <td style="text-align:right;font-weight:bold;">0.26%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">3.77%</td>
+              <td style="text-align:right;">-0.33%</td>
+              <td style="text-align:right;">-2.10%</td>
+              <td style="text-align:right;">-4.74%</td>
+              <td style="text-align:right;">-7.82%</td>
+              <td style="text-align:right;">0.77%</td>
+              <td style="text-align:right;">-0.51%</td>
+              <td style="text-align:right;">2.44%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">-1.07%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>2330</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">0.86%</td>
+              <td style="text-align:right;">3.69%</td>
+              <td style="text-align:right;">3.29%</td>
+              <td style="text-align:right;">-2.92%</td>
+              <td style="text-align:right;">-0.82%</td>
+            <td style="text-align:right;font-weight:bold;">0.82%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">2.20%</td>
+              <td style="text-align:right;">1.89%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">2.91%</td>
+              <td style="text-align:right;">4.37%</td>
+              <td style="text-align:right;">2.71%</td>
+              <td style="text-align:right;">2.88%</td>
+              <td style="text-align:right;">0.93%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">12.24%</td>
+              <td style="text-align:right;">-7.00%</td>
+              <td style="text-align:right;">1.55%</td>
+            <td style="text-align:right;font-weight:bold;">2.06%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">11.11%</td>
+              <td style="text-align:right;">-3.53%</td>
+              <td style="text-align:right;">0.61%</td>
+              <td style="text-align:right;">-8.28%</td>
+              <td style="text-align:right;">-1.32%</td>
+              <td style="text-align:right;">-3.35%</td>
+              <td style="text-align:right;">13.63%</td>
+              <td style="text-align:right;">4.07%</td>
+              <td style="text-align:right;">2.54%</td>
+              <td style="text-align:right;">-10.86%</td>
+              <td style="text-align:right;">-3.63%</td>
+              <td style="text-align:right;">0.00%</td>
+            <td style="text-align:right;font-weight:bold;">0.08%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">-2.00%</td>
+              <td style="text-align:right;">8.14%</td>
+              <td style="text-align:right;">2.72%</td>
+              <td style="text-align:right;">5.50%</td>
+              <td style="text-align:right;">-9.07%</td>
+              <td style="text-align:right;">1.49%</td>
+              <td style="text-align:right;">8.58%</td>
+              <td style="text-align:right;">-0.19%</td>
+              <td style="text-align:right;">5.02%</td>
+              <td style="text-align:right;">9.74%</td>
+              <td style="text-align:right;">2.18%</td>
+              <td style="text-align:right;">8.52%</td>
+            <td style="text-align:right;font-weight:bold;">3.39%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">-3.32%</td>
+              <td style="text-align:right;">-1.25%</td>
+              <td style="text-align:right;">-13.29%</td>
+              <td style="text-align:right;">11.13%</td>
+              <td style="text-align:right;">-4.11%</td>
+              <td style="text-align:right;">7.19%</td>
+              <td style="text-align:right;">35.94%</td>
+              <td style="text-align:right;">0.24%</td>
+              <td style="text-align:right;">1.52%</td>
+              <td style="text-align:right;">-0.23%</td>
+              <td style="text-align:right;">11.23%</td>
+              <td style="text-align:right;">10.30%</td>
+            <td style="text-align:right;font-weight:bold;">4.61%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">11.51%</td>
+              <td style="text-align:right;">2.54%</td>
+              <td style="text-align:right;">-3.14%</td>
+              <td style="text-align:right;">2.21%</td>
+              <td style="text-align:right;">-0.50%</td>
+              <td style="text-align:right;">-0.34%</td>
+              <td style="text-align:right;">-2.52%</td>
+              <td style="text-align:right;">5.86%</td>
+              <td style="text-align:right;">-5.54%</td>
+              <td style="text-align:right;">1.72%</td>
+              <td style="text-align:right;">1.02%</td>
+              <td style="text-align:right;">3.19%</td>
+            <td style="text-align:right;font-weight:bold;">1.34%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">3.41%</td>
+              <td style="text-align:right;">-5.03%</td>
+              <td style="text-align:right;">-1.16%</td>
+              <td style="text-align:right;">-9.88%</td>
+              <td style="text-align:right;">4.09%</td>
+              <td style="text-align:right;">-15.00%</td>
+              <td style="text-align:right;">6.93%</td>
+              <td style="text-align:right;">-0.79%</td>
+              <td style="text-align:right;">-16.44%</td>
+              <td style="text-align:right;">-7.58%</td>
+              <td style="text-align:right;">25.64%</td>
+              <td style="text-align:right;">-8.47%</td>
+            <td style="text-align:right;font-weight:bold;">-2.02%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">16.39%</td>
+              <td style="text-align:right;">-2.11%</td>
+              <td style="text-align:right;">4.31%</td>
+              <td style="text-align:right;">-5.82%</td>
+              <td style="text-align:right;">11.16%</td>
+              <td style="text-align:right;">3.23%</td>
+              <td style="text-align:right;">-1.91%</td>
+              <td style="text-align:right;">-2.83%</td>
+              <td style="text-align:right;">-4.74%</td>
+              <td style="text-align:right;">1.15%</td>
+              <td style="text-align:right;">9.07%</td>
+              <td style="text-align:right;">2.77%</td>
+            <td style="text-align:right;font-weight:bold;">2.56%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">5.90%</td>
+              <td style="text-align:right;">9.87%</td>
+              <td style="text-align:right;">12.90%</td>
+              <td style="text-align:right;">1.41%</td>
+              <td style="text-align:right;">3.92%</td>
+              <td style="text-align:right;">17.66%</td>
+              <td style="text-align:right;">-3.31%</td>
+              <td style="text-align:right;">1.07%</td>
+              <td style="text-align:right;">1.38%</td>
+              <td style="text-align:right;">7.63%</td>
+              <td style="text-align:right;">-3.30%</td>
+              <td style="text-align:right;">7.93%</td>
+            <td style="text-align:right;font-weight:bold;">5.26%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">5.58%</td>
+              <td style="text-align:right;">-8.37%</td>
+              <td style="text-align:right;">-12.50%</td>
+              <td style="text-align:right;">-0.22%</td>
+              <td style="text-align:right;">6.50%</td>
+              <td style="text-align:right;">9.62%</td>
+              <td style="text-align:right;">9.43%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">12.50%</td>
+              <td style="text-align:right;">14.94%</td>
+              <td style="text-align:right;">-4.00%</td>
+              <td style="text-align:right;">7.64%</td>
+            <td style="text-align:right;font-weight:bold;">3.43%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">14.52%</td>
+              <td style="text-align:right;">12.39%</td>
+              <td style="text-align:right;">-11.78%</td>
+              <td style="text-align:right;">21.31%</td>
+              <td style="text-align:right;">10.30%</td>
+              <td style="text-align:right;">2.34%</td>
+              <td style="text-align:right;">0.62%</td>
+              <td style="text-align:right;">-0.82%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">6.11%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>2412</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">-0.87%</td>
+              <td style="text-align:right;">-3.07%</td>
+              <td style="text-align:right;">-2.26%</td>
+              <td style="text-align:right;">-0.46%</td>
+              <td style="text-align:right;">-5.58%</td>
+            <td style="text-align:right;font-weight:bold;">-2.45%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">0.49%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">0.98%</td>
+              <td style="text-align:right;">-0.97%</td>
+              <td style="text-align:right;">5.39%</td>
+              <td style="text-align:right;">0.47%</td>
+              <td style="text-align:right;">-5.56%</td>
+              <td style="text-align:right;">2.94%</td>
+              <td style="text-align:right;">-0.48%</td>
+              <td style="text-align:right;">-1.44%</td>
+              <td style="text-align:right;">0.49%</td>
+              <td style="text-align:right;">2.42%</td>
+            <td style="text-align:right;font-weight:bold;">0.39%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">2.36%</td>
+              <td style="text-align:right;">0.92%</td>
+              <td style="text-align:right;">3.20%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">-3.54%</td>
+              <td style="text-align:right;">0.92%</td>
+              <td style="text-align:right;">-3.64%</td>
+              <td style="text-align:right;">2.36%</td>
+              <td style="text-align:right;">1.38%</td>
+              <td style="text-align:right;">-0.45%</td>
+              <td style="text-align:right;">-2.28%</td>
+              <td style="text-align:right;">5.61%</td>
+            <td style="text-align:right;font-weight:bold;">0.57%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">-5.31%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">2.34%</td>
+              <td style="text-align:right;">1.37%</td>
+              <td style="text-align:right;">1.35%</td>
+              <td style="text-align:right;">0.44%</td>
+              <td style="text-align:right;">-4.42%</td>
+              <td style="text-align:right;">0.93%</td>
+              <td style="text-align:right;">1.83%</td>
+              <td style="text-align:right;">0.90%</td>
+              <td style="text-align:right;">0.89%</td>
+              <td style="text-align:right;">-2.65%</td>
+            <td style="text-align:right;font-weight:bold;">-0.19%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">-1.82%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">-0.46%</td>
+              <td style="text-align:right;">1.86%</td>
+              <td style="text-align:right;">0.91%</td>
+              <td style="text-align:right;">5.88%</td>
+              <td style="text-align:right;">-6.41%</td>
+              <td style="text-align:right;">-0.91%</td>
+              <td style="text-align:right;">-1.38%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">1.40%</td>
+              <td style="text-align:right;">0.46%</td>
+            <td style="text-align:right;font-weight:bold;">-0.04%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">-0.92%</td>
+              <td style="text-align:right;">1.39%</td>
+              <td style="text-align:right;">1.83%</td>
+              <td style="text-align:right;">2.24%</td>
+              <td style="text-align:right;">-0.44%</td>
+              <td style="text-align:right;">0.44%</td>
+              <td style="text-align:right;">0.88%</td>
+              <td style="text-align:right;">-2.61%</td>
+              <td style="text-align:right;">-1.34%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">1.36%</td>
+              <td style="text-align:right;">4.02%</td>
+            <td style="text-align:right;font-weight:bold;">0.57%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">0.86%</td>
+              <td style="text-align:right;">5.96%</td>
+              <td style="text-align:right;">2.01%</td>
+              <td style="text-align:right;">3.15%</td>
+              <td style="text-align:right;">-3.05%</td>
+              <td style="text-align:right;">-3.94%</td>
+              <td style="text-align:right;">-0.41%</td>
+              <td style="text-align:right;">-0.41%</td>
+              <td style="text-align:right;">-5.79%</td>
+              <td style="text-align:right;">-2.63%</td>
+              <td style="text-align:right;">2.25%</td>
+              <td style="text-align:right;">-0.44%</td>
+            <td style="text-align:right;font-weight:bold;">-0.20%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">-0.44%</td>
+              <td style="text-align:right;">2.67%</td>
+              <td style="text-align:right;">3.46%</td>
+              <td style="text-align:right;">6.28%</td>
+              <td style="text-align:right;">-0.79%</td>
+              <td style="text-align:right;">-7.54%</td>
+              <td style="text-align:right;">-0.43%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">3.02%</td>
+              <td style="text-align:right;">0.42%</td>
+            <td style="text-align:right;font-weight:bold;">0.55%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">-0.83%</td>
+              <td style="text-align:right;">1.26%</td>
+              <td style="text-align:right;">4.56%</td>
+              <td style="text-align:right;">-1.59%</td>
+              <td style="text-align:right;">3.23%</td>
+              <td style="text-align:right;">-1.95%</td>
+              <td style="text-align:right;">-3.19%</td>
+              <td style="text-align:right;">2.06%</td>
+              <td style="text-align:right;">1.21%</td>
+              <td style="text-align:right;">-2.79%</td>
+              <td style="text-align:right;">0.82%</td>
+              <td style="text-align:right;">0.41%</td>
+            <td style="text-align:right;font-weight:bold;">0.27%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">0.81%</td>
+              <td style="text-align:right;">2.81%</td>
+              <td style="text-align:right;">0.39%</td>
+              <td style="text-align:right;">0.78%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">4.25%</td>
+              <td style="text-align:right;">-4.44%</td>
+              <td style="text-align:right;">2.71%</td>
+              <td style="text-align:right;">0.75%</td>
+              <td style="text-align:right;">-1.87%</td>
+              <td style="text-align:right;">-0.38%</td>
+              <td style="text-align:right;">-0.00%</td>
+            <td style="text-align:right;font-weight:bold;">0.48%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">2.30%</td>
+              <td style="text-align:right;">0.37%</td>
+              <td style="text-align:right;">-0.75%</td>
+              <td style="text-align:right;">2.26%</td>
+              <td style="text-align:right;">0.74%</td>
+              <td style="text-align:right;">3.28%</td>
+              <td style="text-align:right;">-1.41%</td>
+              <td style="text-align:right;">-2.51%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">0.54%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>2885</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">-2.17%</td>
+              <td style="text-align:right;">-0.44%</td>
+              <td style="text-align:right;">5.36%</td>
+              <td style="text-align:right;">-2.12%</td>
+              <td style="text-align:right;">3.90%</td>
+            <td style="text-align:right;font-weight:bold;">0.90%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">3.33%</td>
+              <td style="text-align:right;">4.84%</td>
+              <td style="text-align:right;">-1.54%</td>
+              <td style="text-align:right;">0.78%</td>
+              <td style="text-align:right;">1.16%</td>
+              <td style="text-align:right;">2.68%</td>
+              <td style="text-align:right;">-3.36%</td>
+              <td style="text-align:right;">1.16%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">2.29%</td>
+              <td style="text-align:right;">3.73%</td>
+              <td style="text-align:right;">-0.72%</td>
+            <td style="text-align:right;font-weight:bold;">1.20%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">1.45%</td>
+              <td style="text-align:right;">-6.07%</td>
+              <td style="text-align:right;">1.52%</td>
+              <td style="text-align:right;">6.37%</td>
+              <td style="text-align:right;">-0.70%</td>
+              <td style="text-align:right;">-1.42%</td>
+              <td style="text-align:right;">1.44%</td>
+              <td style="text-align:right;">10.28%</td>
+              <td style="text-align:right;">3.54%</td>
+              <td style="text-align:right;">-6.83%</td>
+              <td style="text-align:right;">4.67%</td>
+              <td style="text-align:right;">-1.59%</td>
+            <td style="text-align:right;font-weight:bold;">1.05%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">10.03%</td>
+              <td style="text-align:right;">2.65%</td>
+              <td style="text-align:right;">0.57%</td>
+              <td style="text-align:right;">1.99%</td>
+              <td style="text-align:right;">-0.84%</td>
+              <td style="text-align:right;">5.07%</td>
+              <td style="text-align:right;">-6.17%</td>
+              <td style="text-align:right;">3.14%</td>
+              <td style="text-align:right;">2.49%</td>
+              <td style="text-align:right;">2.97%</td>
+              <td style="text-align:right;">3.67%</td>
+              <td style="text-align:right;">2.28%</td>
+            <td style="text-align:right;font-weight:bold;">2.32%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">-2.48%</td>
+              <td style="text-align:right;">-2.54%</td>
+              <td style="text-align:right;">-19.01%</td>
+              <td style="text-align:right;">9.97%</td>
+              <td style="text-align:right;">-4.97%</td>
+              <td style="text-align:right;">7.38%</td>
+              <td style="text-align:right;">3.15%</td>
+              <td style="text-align:right;">2.22%</td>
+              <td style="text-align:right;">-3.26%</td>
+              <td style="text-align:right;">-0.28%</td>
+              <td style="text-align:right;">7.61%</td>
+              <td style="text-align:right;">7.59%</td>
+            <td style="text-align:right;font-weight:bold;">0.45%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">-3.16%</td>
+              <td style="text-align:right;">6.78%</td>
+              <td style="text-align:right;">5.88%</td>
+              <td style="text-align:right;">15.56%</td>
+              <td style="text-align:right;">-1.54%</td>
+              <td style="text-align:right;">4.88%</td>
+              <td style="text-align:right;">-5.40%</td>
+              <td style="text-align:right;">-1.57%</td>
+              <td style="text-align:right;">-1.20%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">-4.05%</td>
+              <td style="text-align:right;">6.75%</td>
+            <td style="text-align:right;font-weight:bold;">1.91%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">-0.20%</td>
+              <td style="text-align:right;">-1.58%</td>
+              <td style="text-align:right;">6.24%</td>
+              <td style="text-align:right;">-0.95%</td>
+              <td style="text-align:right;">-6.88%</td>
+              <td style="text-align:right;">-19.10%</td>
+              <td style="text-align:right;">1.52%</td>
+              <td style="text-align:right;">1.50%</td>
+              <td style="text-align:right;">-3.69%</td>
+              <td style="text-align:right;">0.77%</td>
+              <td style="text-align:right;">14.72%</td>
+              <td style="text-align:right;">-3.98%</td>
+            <td style="text-align:right;font-weight:bold;">-0.97%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">3.69%</td>
+              <td style="text-align:right;">1.11%</td>
+              <td style="text-align:right;">-1.76%</td>
+              <td style="text-align:right;">1.12%</td>
+              <td style="text-align:right;">5.53%</td>
+              <td style="text-align:right;">-3.14%</td>
+              <td style="text-align:right;">5.63%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">2.66%</td>
+              <td style="text-align:right;">-2.99%</td>
+              <td style="text-align:right;">7.00%</td>
+              <td style="text-align:right;">6.15%</td>
+            <td style="text-align:right;font-weight:bold;">2.08%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">-1.99%</td>
+              <td style="text-align:right;">1.48%</td>
+              <td style="text-align:right;">10.75%</td>
+              <td style="text-align:right;">0.82%</td>
+              <td style="text-align:right;">3.26%</td>
+              <td style="text-align:right;">1.26%</td>
+              <td style="text-align:right;">2.34%</td>
+              <td style="text-align:right;">-2.74%</td>
+              <td style="text-align:right;">-0.63%</td>
+              <td style="text-align:right;">2.37%</td>
+              <td style="text-align:right;">2.47%</td>
+              <td style="text-align:right;">2.26%</td>
+            <td style="text-align:right;font-weight:bold;">1.80%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">1.76%</td>
+              <td style="text-align:right;">5.92%</td>
+              <td style="text-align:right;">-8.73%</td>
+              <td style="text-align:right;">-7.03%</td>
+              <td style="text-align:right;">0.80%</td>
+              <td style="text-align:right;">8.93%</td>
+              <td style="text-align:right;">-8.64%</td>
+              <td style="text-align:right;">4.17%</td>
+              <td style="text-align:right;">7.23%</td>
+              <td style="text-align:right;">-1.00%</td>
+              <td style="text-align:right;">4.64%</td>
+              <td style="text-align:right;">8.86%</td>
+            <td style="text-align:right;font-weight:bold;">1.41%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">9.54%</td>
+              <td style="text-align:right;">14.17%</td>
+              <td style="text-align:right;">-8.95%</td>
+              <td style="text-align:right;">16.65%</td>
+              <td style="text-align:right;">14.18%</td>
+              <td style="text-align:right;">10.23%</td>
+              <td style="text-align:right;">3.65%</td>
+              <td style="text-align:right;">-3.96%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">6.94%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+    <details style="margin-bottom:12px;"><summary><b>5880</b> (2016–2026)</summary>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th>年</th>
+<th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th>          <th>年平均</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>2016</b></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">-1.41%</td>
+              <td style="text-align:right;">-0.72%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">1.44%</td>
+              <td style="text-align:right;">-0.00%</td>
+            <td style="text-align:right;font-weight:bold;">-0.14%</td>
+          </tr>
+          <tr><td><b>2017</b></td>
+              <td style="text-align:right;">1.78%</td>
+              <td style="text-align:right;">2.45%</td>
+              <td style="text-align:right;">3.07%</td>
+              <td style="text-align:right;">1.66%</td>
+              <td style="text-align:right;">1.30%</td>
+              <td style="text-align:right;">3.86%</td>
+              <td style="text-align:right;">2.17%</td>
+              <td style="text-align:right;">-3.64%</td>
+              <td style="text-align:right;">-1.57%</td>
+              <td style="text-align:right;">4.15%</td>
+              <td style="text-align:right;">0.31%</td>
+              <td style="text-align:right;">1.53%</td>
+            <td style="text-align:right;font-weight:bold;">1.42%</td>
+          </tr>
+          <tr><td><b>2018</b></td>
+              <td style="text-align:right;">4.52%</td>
+              <td style="text-align:right;">-2.02%</td>
+              <td style="text-align:right;">1.18%</td>
+              <td style="text-align:right;">0.29%</td>
+              <td style="text-align:right;">2.32%</td>
+              <td style="text-align:right;">1.13%</td>
+              <td style="text-align:right;">4.76%</td>
+              <td style="text-align:right;">-2.41%</td>
+              <td style="text-align:right;">1.92%</td>
+              <td style="text-align:right;">-6.45%</td>
+              <td style="text-align:right;">2.87%</td>
+              <td style="text-align:right;">-1.40%</td>
+            <td style="text-align:right;font-weight:bold;">0.56%</td>
+          </tr>
+          <tr><td><b>2019</b></td>
+              <td style="text-align:right;">4.82%</td>
+              <td style="text-align:right;">3.24%</td>
+              <td style="text-align:right;">2.09%</td>
+              <td style="text-align:right;">5.13%</td>
+              <td style="text-align:right;">0.24%</td>
+              <td style="text-align:right;">1.22%</td>
+              <td style="text-align:right;">0.96%</td>
+              <td style="text-align:right;">-4.76%</td>
+              <td style="text-align:right;">2.50%</td>
+              <td style="text-align:right;">2.20%</td>
+              <td style="text-align:right;">-0.95%</td>
+              <td style="text-align:right;">-0.00%</td>
+            <td style="text-align:right;font-weight:bold;">1.39%</td>
+          </tr>
+          <tr><td><b>2020</b></td>
+              <td style="text-align:right;">0.24%</td>
+              <td style="text-align:right;">0.72%</td>
+              <td style="text-align:right;">-12.41%</td>
+              <td style="text-align:right;">9.54%</td>
+              <td style="text-align:right;">1.49%</td>
+              <td style="text-align:right;">1.72%</td>
+              <td style="text-align:right;">3.13%</td>
+              <td style="text-align:right;">-6.31%</td>
+              <td style="text-align:right;">-2.74%</td>
+              <td style="text-align:right;">-1.54%</td>
+              <td style="text-align:right;">5.73%</td>
+              <td style="text-align:right;">0.25%</td>
+            <td style="text-align:right;font-weight:bold;">-0.02%</td>
+          </tr>
+          <tr><td><b>2021</b></td>
+              <td style="text-align:right;">-5.90%</td>
+              <td style="text-align:right;">4.18%</td>
+              <td style="text-align:right;">6.02%</td>
+              <td style="text-align:right;">1.18%</td>
+              <td style="text-align:right;">-2.10%</td>
+              <td style="text-align:right;">1.43%</td>
+              <td style="text-align:right;">2.82%</td>
+              <td style="text-align:right;">2.29%</td>
+              <td style="text-align:right;">-1.12%</td>
+              <td style="text-align:right;">2.26%</td>
+              <td style="text-align:right;">5.09%</td>
+              <td style="text-align:right;">7.16%</td>
+            <td style="text-align:right;font-weight:bold;">1.94%</td>
+          </tr>
+          <tr><td><b>2022</b></td>
+              <td style="text-align:right;">3.93%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">11.72%</td>
+              <td style="text-align:right;">-3.55%</td>
+              <td style="text-align:right;">-1.23%</td>
+              <td style="text-align:right;">-4.62%</td>
+              <td style="text-align:right;">2.05%</td>
+              <td style="text-align:right;">0.91%</td>
+              <td style="text-align:right;">-5.06%</td>
+              <td style="text-align:right;">-4.76%</td>
+              <td style="text-align:right;">6.60%</td>
+              <td style="text-align:right;">-2.44%</td>
+            <td style="text-align:right;font-weight:bold;">0.30%</td>
+          </tr>
+          <tr><td><b>2023</b></td>
+              <td style="text-align:right;">1.73%</td>
+              <td style="text-align:right;">0.76%</td>
+              <td style="text-align:right;">-2.06%</td>
+              <td style="text-align:right;">2.49%</td>
+              <td style="text-align:right;">4.49%</td>
+              <td style="text-align:right;">0.36%</td>
+              <td style="text-align:right;">4.81%</td>
+              <td style="text-align:right;">-10.71%</td>
+              <td style="text-align:right;">-2.48%</td>
+              <td style="text-align:right;">-1.76%</td>
+              <td style="text-align:right;">7.16%</td>
+              <td style="text-align:right;">-0.93%</td>
+            <td style="text-align:right;font-weight:bold;">0.32%</td>
+          </tr>
+          <tr><td><b>2024</b></td>
+              <td style="text-align:right;">-4.68%</td>
+              <td style="text-align:right;">1.96%</td>
+              <td style="text-align:right;">0.96%</td>
+              <td style="text-align:right;">-0.00%</td>
+              <td style="text-align:right;">-2.48%</td>
+              <td style="text-align:right;">1.76%</td>
+              <td style="text-align:right;">3.27%</td>
+              <td style="text-align:right;">-3.54%</td>
+              <td style="text-align:right;">0.00%</td>
+              <td style="text-align:right;">-2.70%</td>
+              <td style="text-align:right;">-1.19%</td>
+              <td style="text-align:right;">-2.41%</td>
+            <td style="text-align:right;font-weight:bold;">-0.75%</td>
+          </tr>
+          <tr><td><b>2025</b></td>
+              <td style="text-align:right;">0.41%</td>
+              <td style="text-align:right;">0.61%</td>
+              <td style="text-align:right;">-2.04%</td>
+              <td style="text-align:right;">1.25%</td>
+              <td style="text-align:right;">-1.44%</td>
+              <td style="text-align:right;">3.12%</td>
+              <td style="text-align:right;">2.63%</td>
+              <td style="text-align:right;">-6.69%</td>
+              <td style="text-align:right;">4.01%</td>
+              <td style="text-align:right;">-3.65%</td>
+              <td style="text-align:right;">0.42%</td>
+              <td style="text-align:right;">1.89%</td>
+            <td style="text-align:right;font-weight:bold;">0.04%</td>
+          </tr>
+          <tr><td><b>2026</b></td>
+              <td style="text-align:right;">-3.09%</td>
+              <td style="text-align:right;">1.91%</td>
+              <td style="text-align:right;">-2.29%</td>
+              <td style="text-align:right;">-2.13%</td>
+              <td style="text-align:right;">-0.44%</td>
+              <td style="text-align:right;">8.75%</td>
+              <td style="text-align:right;">11.07%</td>
+              <td style="text-align:right;">-7.43%</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;">—</td>
+            <td style="text-align:right;font-weight:bold;">0.79%</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+  </div>
+
+</body>
+</html>

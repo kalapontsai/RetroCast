@@ -1112,6 +1112,7 @@ def _run_analyze(body: dict) -> dict:
         shares=combined_shares,
         n_years=n,
         fees={'commission': fee_buy + fee_sell, 'slippage': slippage, 'tax_sell': tax_sell},
+        risk_free_rate=float(body.get('v2_risk_free_rate', body.get('risk_free_rate', 0.015))),
     )
     # overview 改成驗收標準要求的欄位（start/end/rows/first_close/last_close）
     # 保留舊欄位（stocks/min_years/median_years/max_years）作 compatibility

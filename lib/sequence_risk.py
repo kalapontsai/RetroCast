@@ -61,14 +61,17 @@ class SequenceRiskConfig:
     # list[dict(year_offset, amount, label?)]; year_offset 從 current_age 開始計算
     # 預設 [] = 無
     special_expenses: list = field(default_factory=list)
+    _explicit_extended_horizon: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
+        explicit_end_age = self.retirement_end_age is not None
         # Backward-compat defaults: 沒傳 current_age → 從 retirement_age 開始(舊行為)
         if self.current_age is None:
             self.current_age = self.retirement_age
         # 沒傳 retirement_end_age → 從 current_age + horizon_years 推(讓 horizon_years 保持 single source of truth)
         if self.retirement_end_age is None:
             self.retirement_end_age = self.current_age + self.horizon_years
+        self._explicit_extended_horizon = explicit_end_age and self.retirement_end_age >= 110
         # Phase 2C: pension_start_age 預設 = retirement_age
         if self.pension_start_age is None:
             self.pension_start_age = self.retirement_age
@@ -98,6 +101,7 @@ class SequenceRiskResult:
     config: dict = field(default_factory=dict)
     earliest_ruin_age: int | None = None  # Phase 6 (Item 7): 最早破產年齡
     ruin_rate: float = 0.0                # Phase 6 (Item 7): 破產率
+    wealth_by_age: dict[str, dict] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -109,6 +113,7 @@ class SequenceRiskResult:
             'config': self.config,
             'earliest_ruin_age': self.earliest_ruin_age,
             'ruin_rate': self.ruin_rate,
+            'wealth_by_age': self.wealth_by_age,
         }
 
 
@@ -192,6 +197,22 @@ def simulate_sequence_risk(
         retirement_age=config.retirement_age,     # 保留相容性
     )
 
+    wealth_by_age = {}
+    for y in range(horizon):
+        age = config.current_age + y + 1
+        idx = min((y + 1) * TRADING_DAYS_PER_YEAR - 1, nav.shape[1] - 1)
+        balances = np.where(np.isfinite(nav[:, idx]), nav[:, idx], np.nan)
+        wealth_by_age[str(age)] = {
+            'age': age,
+            'years_from_now': age - config.current_age,
+            'depletion_probability': float(np.mean(balances <= 0)),
+            'p10': _safe_int_round(np.nanpercentile(balances, 10)),
+            'p25': _safe_int_round(np.nanpercentile(balances, 25)),
+            'p50': _safe_int_round(np.nanpercentile(balances, 50)),
+            'p75': _safe_int_round(np.nanpercentile(balances, 75)),
+            'p90': _safe_int_round(np.nanpercentile(balances, 90)),
+        }
+
     return SequenceRiskResult(
         survival_rate=survival_rate,
         median_final_balance=median_final_balance,
@@ -200,6 +221,7 @@ def simulate_sequence_risk(
         success_rate_by_age=success_rate_by_age,
         earliest_ruin_age=earliest_ruin_age,  # Phase 6 (Item 7)
         ruin_rate=ruin_rate,                   # Phase 6 (Item 7)
+        wealth_by_age=wealth_by_age,
         config={
             'initial_balance': config.initial_balance,
             'current_age': config.current_age,            # Phase 1.1
@@ -226,9 +248,13 @@ def _validate_config(cfg: SequenceRiskConfig) -> None:
         raise SequenceRiskError(
             f'initial_balance 必須 > 0,got {cfg.initial_balance}'
         )
-    if cfg.horizon_years < 1 or cfg.horizon_years > 50:
+    # Retirement reports may explicitly request the required age-110 endpoint
+    # (e.g. current age 55 -> 55 years). Keep the legacy 1-50 guard for all
+    # ordinary simulations so existing API contracts remain unchanged.
+    max_horizon = 60 if getattr(cfg, '_explicit_extended_horizon', False) else 50
+    if cfg.horizon_years < 1 or cfg.horizon_years > max_horizon:
         raise SequenceRiskError(
-            f'horizon_years 必須 1-50,got {cfg.horizon_years}'
+            f'horizon_years 必須 1-{max_horizon},got {cfg.horizon_years}'
         )
     if cfg.withdrawal_monthly < 0:
         raise SequenceRiskError(

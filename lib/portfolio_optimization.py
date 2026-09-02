@@ -16,10 +16,16 @@ import pandas as pd
 
 NA = None
 MODE_PARAMS = {
-    'Conservative': {'lambda_tracking': 2.0, 'gamma_concentration': 2.0},
-    'Balanced': {'lambda_tracking': 1.0, 'gamma_concentration': 1.0},
-    'Growth': {'lambda_tracking': 0.25, 'gamma_concentration': 0.5},
+    'Conservative': {'lambda_tracking': 2.0, 'gamma_concentration': 2.0, 'eta_transaction': 1.0},
+    'Balanced': {'lambda_tracking': 1.0, 'gamma_concentration': 1.0, 'eta_transaction': 1.0},
+    'Growth': {'lambda_tracking': 0.25, 'gamma_concentration': 0.5, 'eta_transaction': 0.5},
 }
+
+
+def _safe_asset_returns(prices: pd.Series) -> pd.Series:
+    """Return clean returns from one asset's complete available price history."""
+    s = pd.to_numeric(prices, errors='coerce').where(lambda x: x > 0)
+    return s.pct_change(fill_method=None).replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def _score(values, higher=True):
@@ -30,17 +36,31 @@ def _score(values, higher=True):
     return out if higher else 1 - out
 
 
-def _portfolio_metrics(returns: pd.DataFrame, w: np.ndarray) -> dict:
+def _score_value(series: pd.Series, index: int):
+    value = series.iloc[index]
+    return float(value) if pd.notna(value) else None
+
+
+def _portfolio_metrics(returns: pd.DataFrame, w: np.ndarray, risk_free_rate: float = 0.015) -> dict:
     pr = returns.to_numpy(dtype=float) @ w
     if len(pr) < 2:
-        return {'cagr': NA, 'volatility': NA, 'mdd': NA, 'sharpe': NA, 'calmar': NA, 'equity': []}
+        return {'cagr': NA, 'volatility': NA, 'mdd': NA, 'sharpe': NA, 'sortino': NA,
+                'calmar': NA, 'var': NA, 'cvar': NA, 'equity': [], 'drawdown': []}
     equity = np.cumprod(1 + pr)
     years = max((returns.index[-1] - returns.index[0]).days / 365.25, 1 / 365.25)
     vol = float(np.std(pr, ddof=1) * np.sqrt(252))
     cagr = float(equity[-1] ** (1 / years) - 1) if equity[-1] > 0 else NA
     dd = equity / np.maximum.accumulate(equity) - 1
     mdd = float(dd.min())
-    sharpe = float(np.mean(pr) / np.std(pr, ddof=1) * np.sqrt(252)) if vol > 0 else NA
+    daily_std = np.std(pr, ddof=1)
+    rf_daily = float(risk_free_rate) / 252
+    sharpe = float((np.mean(pr) - rf_daily) / daily_std * np.sqrt(252)) if daily_std > 0 else NA
+    downside = np.minimum(pr - rf_daily, 0)
+    downside_dev = np.sqrt(np.mean(downside ** 2)) * np.sqrt(252)
+    sortino = float((np.mean(pr) * 252 - risk_free_rate) / downside_dev) if downside_dev > 0 else NA
+    var = float(np.quantile(pr, 0.05))
+    cvar_tail = pr[pr <= var]
+    cvar = float(np.mean(cvar_tail)) if len(cvar_tail) else var
     calmar = float(cagr / abs(mdd)) if cagr is not None and mdd < 0 else NA
     trough = int(np.argmin(dd)); peak = int(np.argmax(equity[:trough + 1]))
     recovery = next((i for i in range(trough, len(equity)) if equity[i] >= equity[peak]), None)
@@ -53,7 +73,8 @@ def _portfolio_metrics(returns: pd.DataFrame, w: np.ndarray) -> dict:
             'recovery_date': returns.index[recovery].strftime('%Y-%m-%d') if recovery is not None else None,
             'recovery_days': int((returns.index[recovery] - returns.index[trough]).days) if recovery is not None else None,
             'maximum_drawdown_duration_days': int(max_duration),
-            'calmar': calmar, 'drawdown': drawdown, 'equity': [{'date': d.strftime('%Y-%m-%d'), 'value': float(v)}
+            'sortino': sortino, 'calmar': calmar, 'var': var, 'cvar': cvar,
+            'drawdown': drawdown, 'equity': [{'date': d.strftime('%Y-%m-%d'), 'value': float(v)}
                                          for d, v in zip(returns.index, equity)]}
 
 
@@ -96,10 +117,13 @@ def _evidence(returns: pd.DataFrame, n_years: int) -> dict[str, dict]:
         components = [hist, regime, draw, obs]
         score = sum(weight * value for weight, value in zip((.4, .3, .2, .1), components) if value is not None)
         denom = sum(weight for weight, value in zip((.4, .3, .2, .1), components) if value is not None)
+        classification = 'Full N-Year' if years >= n_years else ('Partial N-Year' if years >= 3 else 'Short History')
         out[t] = {'history_years': round(years, 2), 'history_length_score': hist,
                   'market_regime_coverage_score': regime, 'drawdown_evidence_score': draw,
                   'observation_score': obs, 'evidence_score': score / denom if denom else None,
-                  'evidence_status': 'OK' if denom == 1 else 'Data Insufficient'}
+                  'evidence_status': 'OK' if denom == 1 else 'Data Insufficient',
+                  'classification': classification,
+                  'emerging_quality_candidate': False}
     return out
 
 
@@ -118,12 +142,19 @@ def _project(w: np.ndarray, lo: float, hi: float) -> np.ndarray | None:
     return w if abs(w.sum() - 1) < 1e-8 else None
 
 
-def _optimise(scores: np.ndarray, current: np.ndarray, sigma: np.ndarray, params: dict, lo=.02, hi=.15):
+def _optimise(scores: np.ndarray, current: np.ndarray, sigma: np.ndarray, params: dict, lo=.02, hi=.15, transaction_rate=0.0):
     w = _project(current, lo, hi)
     if w is None:
         return None
     def objective(x):
-        return float(x @ scores - params['lambda_tracking'] * np.sum((x-current)**2) - params['gamma_concentration'] * np.sum(x*x))
+        tracking = np.sum((x-current)**2)
+        concentration = np.sum(x*x)
+        transaction = np.sum(np.abs(x-current)) * float(transaction_rate)
+        risk_penalty = float(x @ sigma @ x) if sigma is not None else 0.0
+        return float(x @ scores - params['lambda_tracking'] * tracking
+                     - params['gamma_concentration'] * concentration
+                     - params.get('eta_transaction', 1.0) * transaction
+                     - 0.05 * risk_penalty)
     best = objective(w)
     # Deterministic coordinate transfer search; every candidate is feasible.
     for step in (0.01, 0.0025, 0.0005):
@@ -144,45 +175,64 @@ def _optimise(scores: np.ndarray, current: np.ndarray, sigma: np.ndarray, params
     return w, best
 
 
-def _trade_rows(tickers, current_w, target_w, values, prices, shares, fees):
+def _trade_rows(tickers, current_w, target_w, values, prices, shares, fees, threshold=.01):
     total = float(sum(values))
     rows = []; gross = commission = slippage = tax = 0.0
     for i, t in enumerate(tickers):
         value = float(values[i]); price = prices.get(t)
         diff = float(target_w[i] - current_w[i])
         trade = total * diff
-        action = 'NO TRADE' if abs(diff) < .01 else ('BUY' if diff > 0 else 'SELL')
+        action = 'HOLD / NO TRADE' if abs(diff) < threshold else ('BUY' if diff > 0 else 'SELL')
         target_value = total * target_w[i]
         target_shares = math.floor(target_value / price) if price and price > 0 else None
         actual_value = target_shares * price if target_shares is not None else None
+        actual_weight = actual_value / total if actual_value is not None and total > 0 else None
         rows.append({'ticker': t, 'current_shares': int(shares.get(t, 0)), 'current_value': value,
                      'current_weight': float(current_w[i]), 'target_weight': float(target_w[i]),
                      'weight_difference': diff, 'target_value': target_value, 'trade_value': trade,
-                     'target_shares': target_shares, 'actual_value': actual_value, 'action': action})
-        if action != 'NO TRADE':
+                     'target_shares': target_shares, 'actual_value': actual_value,
+                     'actual_weight': actual_weight,
+                     'weight_difference_actual': actual_weight - current_w[i] if actual_weight is not None else None,
+                     'action': action})
+        if action != 'HOLD / NO TRADE':
             tv = abs(trade); gross += tv; commission += tv * fees.get('commission', 0); slippage += tv * fees.get('slippage', 0)
             if action == 'SELL': tax += tv * fees.get('tax_sell', 0)
+    actual_invested = sum((r['actual_value'] or 0) for r in rows)
+    cost = commission + slippage + tax
     return rows, {'gross_trade_value': gross, 'commission': commission, 'slippage': slippage, 'tax': tax,
-                  'transaction_cost': commission + slippage + tax, 'net_trade_value': gross + commission + slippage + tax}
+                  'transaction_cost': cost, 'net_trade_value': gross + cost,
+                  'actual_invested_value': actual_invested,
+                  'cash_residual': total - actual_invested,
+                  'cost_rate': cost / total if total else 0.0}
 
 
 def build_optimization(prices: pd.DataFrame, current_weights: dict, current_values: dict,
-                       current_prices: dict, shares: dict, n_years: int, fees: dict | None = None) -> dict:
+                       current_prices: dict, shares: dict, n_years: int, fees: dict | None = None,
+                       risk_free_rate: float = 0.015) -> dict:
     fees = fees or {}; tickers = [t for t in prices.columns if t in current_weights]
+    transaction_rate = sum(float(fees.get(k, 0) or 0) for k in ('commission', 'slippage', 'tax_sell'))
     result = {'status': 'DATA INSUFFICIENT', 'reason': '', 'parameters': {'n_years': n_years, 'min_weight': .02, 'max_weight': .15,
-              'no_trade_threshold': .01, 'models': MODE_PARAMS, 'adjusted_score_formula': 'RawScore × (0.70 + 0.30 × EvidenceScore)'}, 'validation': {}, 'sensitivity': []}
-    returns = prices[tickers].pct_change(fill_method=None).replace([np.inf, -np.inf], np.nan).dropna(how='any')
+              'no_trade_threshold': .01, 'risk_free_rate': risk_free_rate, 'transaction_cost_rate': transaction_rate,
+              'models': MODE_PARAMS, 'adjusted_score_formula': 'RawScore × (0.70 + 0.30 × EvidenceScore)'}, 'validation': {}, 'sensitivity': [], 'data_quality_warnings': []}
+    # Individual history is deliberately retained; only portfolio covariance uses
+    # the common intersection. This prevents short-history ETFs being discarded.
+    individual_returns = prices[tickers].apply(_safe_asset_returns)
+    returns = individual_returns.dropna(how='any')
     result['dataset'] = {'start_date': returns.index[0].strftime('%Y-%m-%d') if not returns.empty else None,
                          'end_date': returns.index[-1].strftime('%Y-%m-%d') if not returns.empty else None,
                          'observation_count': int(len(returns)), 'missing_count': int(prices[tickers].isna().sum().sum()),
-                         'valid_observation_ratio': float(len(returns) / max(len(prices), 1))}
+                         'valid_observation_ratio': float(len(returns) / max(len(individual_returns), 1)),
+                         'requested_n_years': n_years,
+                         'actual_common_period_years': round((returns.index[-1] - returns.index[0]).days / 365.25, 2) if len(returns) > 1 else 0.0}
+    if result['dataset']['actual_common_period_years'] < n_years:
+        result['data_quality_warnings'].append('WARNING: Common period is significantly shorter than requested N-year period.')
     result['daily_return_matrix'] = {
         'tickers': tickers,
         'rows': [{'date': d.strftime('%Y-%m-%d'), **{t: float(v) for t, v in row.items()}}
                  for d, row in returns.tail(500).iterrows()],
         'display_note': 'Rows are limited to the latest 500 for report size; calculations use the full common matrix.'
     }
-    if len(tickers) < 7 or len(returns) < 20:
+    if len(returns) < 20:
         result['reason'] = 'Daily Return Matrix does not contain enough common observations.'
         return result
     sigma = returns.cov().to_numpy() * 252
@@ -191,8 +241,8 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
     result['correlation_matrix'] = {'tickers': tickers, 'values': corr.to_numpy().tolist()}
     individual = {}
     for t in tickers:
-        individual[t] = _portfolio_metrics(returns[[t]], np.array([1.0]))
-    ev = _evidence(returns, n_years)
+        individual[t] = _portfolio_metrics(individual_returns[[t]].dropna(), np.array([1.0]), risk_free_rate)
+    ev = _evidence(individual_returns, n_years)
     cagr = _score([individual[t]['cagr'] for t in tickers])
     vol = _score([individual[t]['volatility'] for t in tickers], higher=False)
     mdd = _score([abs(individual[t]['mdd']) for t in tickers], higher=False)
@@ -200,14 +250,19 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
     calmar = _score([individual[t]['calmar'] for t in tickers])
     scores = []
     for i, t in enumerate(tickers):
-        raw = float(.35*cagr.iloc[i] + .2*sharpe.iloc[i] + .15*vol.iloc[i] + .15*mdd.iloc[i] + .15*calmar.iloc[i])
+        available = [(cagr.iloc[i], .35), (sharpe.iloc[i], .20), (vol.iloc[i], .15), (mdd.iloc[i], .15), (calmar.iloc[i], .15)]
+        available = [(v, weight) for v, weight in available if pd.notna(v)]
+        raw = float(sum(v * weight for v, weight in available) / sum(weight for _, weight in available)) if available else None
         evidence = ev[t]['evidence_score']
-        adjusted = raw * (.70 + .30*evidence) if evidence is not None else None
+        adjusted = raw * (.70 + .30*evidence) if raw is not None and evidence is not None else None
         ev[t].update({'cagr': individual[t]['cagr'], 'volatility': individual[t]['volatility'], 'mdd': individual[t]['mdd'],
-                      'sharpe': individual[t]['sharpe'], 'calmar': individual[t]['calmar'], 'return_score': float(cagr.iloc[i]),
-                      'risk_score': float(vol.iloc[i]), 'mdd_score': float(mdd.iloc[i]), 'sharpe_score': float(sharpe.iloc[i]),
-                      'calmar_score': float(calmar.iloc[i]), 'raw_score': raw, 'adjusted_score': adjusted,
+                      'sharpe': individual[t]['sharpe'], 'sortino': individual[t]['sortino'], 'calmar': individual[t]['calmar'], 'return_score': float(cagr.iloc[i]) if pd.notna(cagr.iloc[i]) else None,
+                      'risk_score': _score_value(vol, i), 'mdd_score': _score_value(mdd, i), 'sharpe_score': _score_value(sharpe, i),
+                      'calmar_score': float(calmar.iloc[i]) if pd.notna(calmar.iloc[i]) else None,
+                      'evidence_factor': .70 + .30*evidence if evidence is not None else None,
+                      'raw_score': raw, 'adjusted_score': adjusted,
                       })
+        ev[t]['emerging_quality_candidate'] = bool(adjusted is not None and adjusted >= .65 and evidence is not None and evidence >= .55 and ev[t]['history_years'] < n_years)
         scores.append(adjusted)
     result['scores'] = ev
     if any(x is None for x in scores):
@@ -215,15 +270,25 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
         return result
     current = np.array([float(current_weights.get(t, 0)) for t in tickers]); current = current/current.sum()
     values = [float(current_values.get(t, 0)) for t in tickers]
-    result['current'] = _portfolio_metrics(returns, current); result['current']['weights'] = current.tolist()
+    result['current'] = _portfolio_metrics(returns, current, risk_free_rate); result['current']['weights'] = current.tolist()
     result['portfolio_equity_curve'] = result['current']['equity']
     result['portfolio_drawdown_curve'] = result['current']['drawdown']
-    chosen = _optimise(np.array(scores), current, sigma, MODE_PARAMS['Balanced'])
+    if len(tickers) * .02 > 1 or len(tickers) * .15 < 1:
+        result['reason'] = f'{len(tickers)} assets cannot satisfy 2%–15% weight constraints.'
+        result['validation']['constraints_feasible'] = False
+        return result
+    result['validation']['constraints_feasible'] = True
+    chosen = _optimise(np.array(scores), current, sigma, MODE_PARAMS['Balanced'], transaction_rate=transaction_rate)
     if chosen is None:
         result['reason'] = '2%–15% constraints are infeasible for the number of assets.'; return result
     target, objective = chosen
-    result['optimized'] = _portfolio_metrics(returns, target); result['optimized']['weights'] = target.tolist(); result['objective'] = objective
-    result['trades'], result['transaction_cost'] = _trade_rows(tickers, current, target, values, current_prices, shares, fees)
+    result['optimized'] = _portfolio_metrics(returns, target, risk_free_rate); result['optimized']['weights'] = target.tolist(); result['objective'] = objective
+    result['trades'], result['transaction_cost'] = _trade_rows(tickers, current, target, values, current_prices, shares, fees, result['parameters']['no_trade_threshold'])
+    result['trade_summary'] = {
+        'buy': sum(row['action'] == 'BUY' for row in result['trades']),
+        'sell': sum(row['action'] == 'SELL' for row in result['trades']),
+        'hold': sum(row['action'] == 'HOLD / NO TRADE' for row in result['trades']),
+    }
     result['concentration'] = {'current_hhi': float(np.sum(current*current)), 'optimized_hhi': float(np.sum(target*target)),
                                'current_max_weight': float(max(current)), 'optimized_max_weight': float(max(target)),
                                'current_top5': float(sorted(current, reverse=True)[:5].__iter__().__next__()) if False else float(sum(sorted(current, reverse=True)[:5])),
@@ -231,7 +296,9 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
     result['before_after'] = {k: {'current': result['current'].get(k), 'optimized': result['optimized'].get(k),
                                   'change': result['optimized'].get(k) - result['current'].get(k),
                                   'direction': 'Higher is better' if k in ('cagr', 'sharpe', 'calmar') else 'Lower is better'}
-                              for k in ('cagr', 'volatility', 'mdd', 'sharpe', 'calmar')}
+                              for k in ('cagr', 'volatility', 'mdd', 'sharpe', 'sortino', 'calmar', 'var', 'cvar')}
+    result['before_after']['transaction_cost'] = {'current': 0.0, 'optimized': result['transaction_cost']['transaction_cost'],
+                                                  'change': result['transaction_cost']['transaction_cost']}
     result['stress_test'] = {}
     for name, start, end in (('2008 Global Financial Crisis', '2008-01-01', '2009-06-30'),
                              ('2020 COVID Crash', '2020-02-01', '2020-06-30'),
@@ -242,13 +309,15 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
     result['stress_test']['Technology Drawdown'] = {'status': 'N/A', 'reason': 'No technology-specific scenario definition is present in the existing data.'}
     result['retirement_monte_carlo'] = {'status': 'N/A', 'reason': 'Optimized F1/F2 comparison requires the same configured retirement inputs and is not inferred.'}
     for label, p in MODE_PARAMS.items():
-        opt = _optimise(np.array(scores), current, sigma, p)
+        opt = _optimise(np.array(scores), current, sigma, p, transaction_rate=transaction_rate)
         if opt:
-            w2, _ = opt; met = _portfolio_metrics(returns, w2)
+            w2, _ = opt; met = _portfolio_metrics(returns, w2, risk_free_rate)
             result['sensitivity'].append({'mode': label, **p, **{k: met[k] for k in ('cagr','volatility','mdd','sharpe','calmar')},
+                                          'weights': {t: float(x) for t, x in zip(tickers, w2)},
                                           'maximum_weight': float(max(w2)), 'top5_concentration': float(sum(sorted(w2, reverse=True)[:5])),
                                           'turnover': float(np.sum(abs(w2-current)))})
     result['validation'] = {'common_date_range': bool(result['dataset']['start_date'] and result['dataset']['end_date']),
+                            'constraints_feasible': True,
                             'covariance_valid': bool(np.isfinite(sigma).all()), 'portfolio_volatility_valid': result['current']['volatility'] is not None,
                             'equity_curve_valid': bool(result['current']['equity']), 'weight_sum': float(target.sum()),
                             'min_weight': float(target.min()), 'max_weight': float(target.max()), 'constraints_satisfied': bool(abs(target.sum()-1)<1e-8 and target.min()>=.02-1e-8 and target.max()<=.15+1e-8),
