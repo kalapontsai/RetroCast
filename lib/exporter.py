@@ -214,14 +214,11 @@ def render_rebalance_report(analyze: dict, profile_name: str = '') -> str:
 
 
 def _get_monthly_tickers(analyze: dict) -> dict:
-    """v3.0.3 N8: 從 analyze 拿每個 ticker 的 daily returns,算 monthly returns。
+    """v3.0.4 P0 fix: 月報表走 fresh-start-per-month shares tracking。
 
-    analyze.meta.daily_returns_by_ticker 是 [{date, ret}] list 格式
-    (來自 _build_analyze_meta,避免 inner join 把舊資料 drop)
-    要轉回 dict[ticker → pd.Series] 才能餵 compute_monthly_returns_by_ticker
-
-    Phase 6 (Item 1, 2): 限到「最近 N 年」（N = analyze.forecast.n），
-    並回傳 N / 實際起訖 / 實際年數 給 template header 顯示。
+    優先讀 analyze.monthly_tickers(_run_analyze 已預算好),
+    缺資料時 fallback 到 daily_returns_by_ticker + compute_monthly_returns_by_ticker
+    (舊路徑,僅供舊 analyze 結構或單元測試使用)
 
     Returns:
         dict: {
@@ -232,8 +229,40 @@ def _get_monthly_tickers(analyze: dict) -> dict:
           'actual_years': float,
         }
     """
-    daily_rets_raw = (analyze.get('meta') or {}).get('daily_returns_by_ticker') or {}
     n_years = int((analyze.get('forecast') or {}).get('n') or 0)
+
+    # 新路徑(主人 2026-09-03 P0 fix)
+    pre = analyze.get('monthly_tickers')
+    if pre is not None:
+        # 順手算 actual_start/end/years 給 template
+        actual_dates: list = []
+        for tk in pre:
+            for y, m in (tk.get('data') or {}).items():
+                if y == 'year_avg':
+                    continue
+                for k, v in m.items():
+                    if k == 'year_avg':
+                        continue
+                    # data 裡只有月報酬,沒有日期字串,從 first_year/last_year 推
+        first_year = min((tk['first_year'] for tk in pre), default=None)
+        last_year = max((tk['last_year'] for tk in pre), default=None)
+        if first_year is not None:
+            actual_start = f'{first_year}-01-01'
+            actual_end = f'{last_year}-12-31' if last_year else '—'
+            actual_years = float(max(last_year - first_year + 1, 1)) if last_year else 0.0
+        else:
+            actual_start = actual_end = '—'
+            actual_years = 0.0
+        return {
+            'tickers': pre,
+            'n': n_years,
+            'actual_start': actual_start,
+            'actual_end': actual_end,
+            'actual_years': actual_years,
+        }
+
+    # 舊路徑 fallback
+    daily_rets_raw = (analyze.get('meta') or {}).get('daily_returns_by_ticker') or {}
     if not daily_rets_raw:
         return {'tickers': [], 'n': n_years,
                 'actual_start': '—', 'actual_end': '—', 'actual_years': 0.0}
@@ -264,8 +293,7 @@ def _get_monthly_tickers(analyze: dict) -> dict:
         s = pd.Series(df['ret'].values, index=df['date'].values, name=ticker).sort_index()
         daily_rets[ticker] = s
 
-    # Phase 6 (Item 2): 取「所有 ticker 加總後」的實際資料範圍
-    actual_dates: list = []
+    actual_dates = []
     for s in daily_rets.values():
         actual_dates.extend(s.index.tolist())
     if actual_dates:

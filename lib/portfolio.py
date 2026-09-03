@@ -655,6 +655,42 @@ def per_stock_history(
     return per
 
 
+def _window_shares_tracking_nav(
+    raw_window: pd.Series,
+    events_by_date: dict[str, list[tuple]],
+) -> pd.Series:
+    """v3.0.4 P0 fix: 抽出 per_stock_n_year_window 的核心 shares tracking。
+
+    Input:
+        raw_window: pd.Series index=Date, values=raw close
+                    (通常會先取 [cutoff, end_date] 才進來)
+        events_by_date: {date_str: [(kind, ...), ...]}
+                        kind ∈ {'div': (cash, stock_ratio), 'split': (ratio,)}
+
+    Output:
+        nav: pd.Series index=Date, values=shares(t) × close(t)
+             shares 從該窗口第一日 = 1.0 開始累積
+
+    用法:
+      - per_stock_n_year_window 拿來算 5y total return / CAGR / MDD
+      - monthly_returns.compute_monthly_returns_via_shares_tracking 拿來算逐月報酬
+        (兩者 nav series 同源 → 5y compound 跟 total return 必定 100% 對齊)
+    """
+    shares = 1.0
+    nav_series: list[float] = []
+    for d_idx, p in raw_window.items():
+        for ev in events_by_date.get(d_idx.strftime('%Y-%m-%d'), []):
+            if ev[0] == 'div':
+                cash, sr = ev[1], ev[2]
+                shares *= (1 + sr)
+                if p > 0 and cash > 0:
+                    shares += cash / p
+            elif ev[0] == 'split':
+                shares *= ev[1]
+        nav_series.append(shares * float(p))
+    return pd.Series(nav_series, index=raw_window.index)
+
+
 def per_stock_n_year_window(
     raw_prices: pd.DataFrame,
     n_years: int,
@@ -715,6 +751,7 @@ def per_stock_n_year_window(
         short = years_actual < n_years * 0.95
 
         # 在 window 內跑股數追蹤法（v3 還原除權息）
+        # v3.0.4 P0 fix: 抽出 _window_shares_tracking_nav helper,跟月報表共用
         window_index_str = set(window.index.strftime('%Y-%m-%d').tolist())
         events_by_date: dict[str, list[tuple]] = {}
         for d in dividends_by_ticker.get(t) or []:
@@ -727,19 +764,7 @@ def per_stock_n_year_window(
                 events_by_date.setdefault(sp['date'], []).append(
                     ('split', float(sp.get('split_ratio', 1.0) or 1.0))
                 )
-        shares = 1.0
-        nav_series: list[float] = []
-        for d_idx, p in window.items():
-            for ev in events_by_date.get(d_idx.strftime('%Y-%m-%d'), []):
-                if ev[0] == 'div':
-                    cash, sr = ev[1], ev[2]
-                    shares *= (1 + sr)
-                    if p > 0 and cash > 0:
-                        shares += cash / p
-                elif ev[0] == 'split':
-                    shares *= ev[1]
-            nav_series.append(shares * float(p))
-        nav = pd.Series(nav_series, index=window.index)
+        nav = _window_shares_tracking_nav(window, events_by_date)
 
         try:
             m = _metrics(nav)

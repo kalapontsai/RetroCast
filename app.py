@@ -215,32 +215,42 @@ def create_app() -> Flask:
         if not tickers:
             raise _BadInput('profile 無 holdings')
 
-        # v3.0.3 fix: 逐 ticker 獨立抓(避免 inner join 把舊資料 drop 掉)
-        # 例:0050 有 2003~2026,但 00980A 只有 2025~2026,
-        #    inner join 後只剩 2025~2026,所有 ticker 變成 2026 only。
-        # 改用各自 start_date(用 cache 的 fetched_start_date 當下限)避免多抓
+        # v3.0.4 P0 fix: 逐 ticker 獨立抓 + 走 fresh-start-per-month shares tracking
+        # (不走 daily returns 路線,避免 cumulative adj + pct_change 被 shares 稀釋)
+        # 沒 div/split cache 的 ticker 自動 fallback 到 raw close(等同舊行為)
+        from lib.monthly_returns import compute_monthly_returns_via_shares_tracking  # noqa
+        from lib.portfolio import prices_to_pivot  # noqa
+
         finmind = FinMindClient()
         end_date = default_end_date()
-        daily_rets: dict[str, pd.Series] = {}
+        rows_by_ticker: dict[str, list] = {}
+        dividends_by_ticker: dict[str, list] = {}
+        splits_by_ticker: dict[str, list] = {}
         for ticker in tickers:
             try:
                 rows = finmind.get_stock_price(ticker, '2014-01-01', end_date, use_cache=True)
-            except Exception as e:
-                # 單檔失敗不擋整批,跳過該 ticker
+            except Exception:
                 continue
             if not rows:
                 continue
-            df = pd.DataFrame(rows)
-            df['date'] = pd.to_datetime(df['date'])
-            df = df.set_index('date').sort_index()
-            series = df['close'].pct_change().dropna()
-            series.name = ticker
-            if len(series) > 0:
-                daily_rets[ticker] = series
-        if not daily_rets:
+            rows_by_ticker[ticker] = rows
+            try:
+                dividends_by_ticker[ticker] = finmind.get_dividends(ticker, '2014-01-01', end_date)
+            except Exception:
+                dividends_by_ticker[ticker] = []
+            try:
+                splits_by_ticker[ticker] = finmind.get_splits(ticker, '2014-01-01', end_date)
+            except Exception:
+                splits_by_ticker[ticker] = []
+        if not rows_by_ticker:
             return jsonify({'tickers': []})
 
-        out = compute_monthly_returns_by_ticker(daily_rets)
+        prices = prices_to_pivot(rows_by_ticker, price_col='close')
+        out = compute_monthly_returns_via_shares_tracking(
+            prices,
+            dividends_by_ticker=dividends_by_ticker,
+            splits_by_ticker=splits_by_ticker,
+        )
         return jsonify(out)
 
     @app.route('/favicon.ico')
@@ -741,31 +751,54 @@ def _fetch_daily_portfolio_returns(
     )
     portfolio_returns.name = 'portfolio'
 
-    # v3.0.3 N8: 逐 ticker 算 daily returns(card ⑥ 用)
-    # 不用 close_df（已被 inner join 縮成最新 ticker 的範圍），
-    # 改走 finmind.get_stock_price 拿各自完整範圍,跟 /api/v2/monthly_returns 一致
-    daily_returns_by_ticker: dict[str, list] = {}
-    for ticker in [h.ticker for h in holdings]:
+    # v3.0.4 P0 fix: 逐 ticker 算 daily returns(card ⑥ 月報表用)
+    # 走 fresh-start-per-month shares tracking(不被 cumulative shares 稀釋)
+    # 沒 div/split cache 的 ticker 自動 fallback(等同 raw close 行為)
+    from lib.monthly_returns import compute_monthly_returns_via_shares_tracking
+    from lib.portfolio import prices_to_pivot
+
+    rows_by_ticker: dict[str, list] = {}
+    divs_by_ticker: dict[str, list] = {}
+    splits_by_ticker: dict[str, list] = {}
+    for h in holdings:
         try:
-            rows = client.get_stock_price(
-                ticker, DEFAULT_START_DATE, today, use_cache=True,
-            )
+            rows = client.get_stock_price(h.ticker, DEFAULT_START_DATE, today, use_cache=True)
         except Exception:
             continue
         if not rows:
             continue
-        df = pd.DataFrame(rows)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.set_index('date').sort_index()
-        rets = df['close'].pct_change().dropna()
-        # v3.0.4 fix: 過濾 inf (某天 close=0 → pct_change(±∞))
-        rets = rets.replace([float('inf'), float('-inf')], float('nan')).dropna()
-        if len(rets) > 0:
-            # 轉成 list[{date, ret}] 給 jsonify
-            daily_returns_by_ticker[ticker] = [
-                {'date': d.strftime('%Y-%m-%d'), 'ret': float(r)}
-                for d, r in rets.items()
-            ]
+        rows_by_ticker[h.ticker] = rows
+        try:
+            divs_by_ticker[h.ticker] = client.get_dividends(h.ticker, DEFAULT_START_DATE, today)
+        except Exception:
+            divs_by_ticker[h.ticker] = []
+        try:
+            splits_by_ticker[h.ticker] = client.get_splits(h.ticker, DEFAULT_START_DATE, today)
+        except Exception:
+            splits_by_ticker[h.ticker] = []
+
+    if rows_by_ticker:
+        prices_pivot = prices_to_pivot(rows_by_ticker, price_col='close')
+        monthly_out = compute_monthly_returns_via_shares_tracking(
+            prices_pivot,
+            dividends_by_ticker=divs_by_ticker,
+            splits_by_ticker=splits_by_ticker,
+        )
+        # v3.0.4 P0 fix: monthly_tickers 由 _run_analyze 從 _build_analyze_meta 拿
+        # (這裡只回傳 daily portfolio returns,不再順便算 monthly,避免破壞函數職責)
+
+    # daily_returns_by_ticker 仍用 cumulative adj(給 card ⑤ / dashboard JSON 用)
+    daily_returns_by_ticker: dict[str, list] = {}
+    for h in holdings:
+        rets, _fallback = _adj_close_daily_returns(
+            h.ticker, client, DEFAULT_START_DATE, today,
+        )
+        if rets is None or len(rets) == 0:
+            continue
+        daily_returns_by_ticker[h.ticker] = [
+            {'date': d.strftime('%Y-%m-%d'), 'ret': float(r)}
+            for d, r in rets.items()
+        ]
 
     meta = {
         'profile': profile,
@@ -1213,6 +1246,12 @@ def _run_analyze(body: dict) -> dict:
         # v3.0.3 N8: card ⑥ 用。逐 ticker 獨立抓（避免 inner join 縮成最新 ticker 的範圍）
         'meta': _build_analyze_meta(client, [h.ticker for h in holdings], start_date, end_date),
     }
+    # v3.0.4 P0 fix: card ⑥ 月報表走 fresh-start-per-month shares tracking
+    # (跟一.6 同源,不被 cumulative shares 稀釋。沒 div/split cache 的 ticker
+    #  graceful fallback 到 raw close)
+    result['monthly_tickers'] = _build_monthly_tickers(
+        holdings, client, start_date, end_date, n, dividends_by_ticker, splits_by_ticker,
+    )
     # Phase 4.1: model validation（不 raise,只把結果塞 result['validation'],
     # 給前端選擇性顯示）。CI mode 可呼叫 raise_if_critical 改 raise。
     try:
@@ -1230,29 +1269,147 @@ def _run_analyze(body: dict) -> dict:
     return result
 
 
-def _build_analyze_meta(client, tickers, start_date, end_date):
-    """v3.0.3 N8: 為每個 ticker 算 daily returns（各自完整範圍）。給 card ⑥ 與 export 用。"""
-    out = {}
-    for ticker in tickers:
+def _build_monthly_tickers(holdings, client, start_date, end_date, n_years, dividends_by_ticker, splits_by_ticker):
+    """v3.0.4 P0 fix: 算 card ⑥ 月報酬表(跟一.6 shares tracking 同源)。
+
+    逐 ticker 走 raw close + dividend/split → compute_monthly_returns_via_shares_tracking
+    沒 div/split cache 的 ticker graceful fallback 到 raw close。
+
+    Window 限制 (跟舊 fallback 路徑對齊):
+      window_end = end_date
+      window_start = end_date - N 年 (N = n_years 參數,phase 6 item 1 規則)
+      → 月報表只表達最近 N 年,避免被「上市第一天到今天」的累計 CAGR 吞掉
+
+    Args:
+        holdings: list[Holding(ticker, shares)]
+        client: FinMindClient
+        start_date, end_date: 'YYYY-MM-DD'
+        n_years: N 年(從 request body 進來)
+        dividends_by_ticker, splits_by_ticker: 字典 from upstream
+
+    Returns:
+        list[ticker_dict] (跟 compute_monthly_returns_via_shares_tracking 一樣)
+    """
+    from lib.monthly_returns import compute_monthly_returns_via_shares_tracking
+    from lib.portfolio import prices_to_pivot
+
+    rows_by_ticker: dict[str, list] = {}
+    # 直接用 caller 傳進來的 dividends_by_ticker / splits_by_ticker
+    # (上游 _run_analyze 已算好,不要重新從 cache 讀)
+    for h in holdings:
         try:
-            rows = client.get_stock_price(ticker, start_date, end_date, use_cache=True)
+            rows = client.get_stock_price(h.ticker, start_date, end_date, use_cache=True)
         except Exception:
             continue
         if not rows:
             continue
-        df = pd.DataFrame(rows)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.set_index('date').sort_index()
-        rets = df['close'].pct_change().dropna()
-        # v3.0.4 fix: 過濾 inf (某天 close=0 時 pct_change 算出 ±inf),
-        # 若不過濾下游 json.dumps(allow_nan=False) 會被 sanity check 抓錯。
-        rets = rets.replace([float('inf'), float('-inf')], float('nan')).dropna()
-        if len(rets) > 0:
-            out[ticker] = [
-                {'date': d.strftime('%Y-%m-%d'), 'ret': float(r)}
-                for d, r in rets.items()
-            ]
+        rows_by_ticker[h.ticker] = rows
+
+    if not rows_by_ticker:
+        return []
+
+    # 確保 caller 傳的 dict 有 keys(沒事件的就 [])
+    divs_to_use = {tk: dividends_by_ticker.get(tk, []) for tk in rows_by_ticker}
+    splits_to_use = {tk: splits_by_ticker.get(tk, []) for tk in rows_by_ticker}
+
+    # N 年 window:跟舊 fallback 路徑同樣算法
+    window_end_ts = pd.Timestamp(end_date)
+    window_start_ts = window_end_ts - pd.DateOffset(years=n_years) if n_years > 0 else None
+
+    prices_pivot = prices_to_pivot(rows_by_ticker, price_col='close')
+    monthly_out = compute_monthly_returns_via_shares_tracking(
+        prices_pivot,
+        dividends_by_ticker=divs_to_use,
+        splits_by_ticker=splits_to_use,
+        window_start=window_start_ts.strftime('%Y-%m-%d') if window_start_ts is not None else None,
+        window_end=end_date,
+    )
+    return monthly_out.get('tickers', [])
+
+
+def _build_analyze_meta(client, tickers, start_date, end_date):
+    """v3.0.4 P0 fix: 為每個 ticker 算含息 daily returns(跟月報表同源)。
+
+    注意:這條 daily returns 仍用 cumulative adj close + pct_change。
+    「逐月報酬表」會被 exporter 走 compute_monthly_returns_via_shares_tracking
+    (fresh-start-per-month shares tracking) 覆蓋,不被 cumulative 稀釋。
+    這裡只為 card ⑤ / dashboard JSON 提供 daily returns 給下游(若有)。
+    """
+    out = {}
+    for ticker in tickers:
+        rets, _fallback = _adj_close_daily_returns(
+            ticker, client, start_date, end_date,
+        )
+        if rets is None or len(rets) == 0:
+            continue
+        out[ticker] = [
+            {'date': d.strftime('%Y-%m-%d'), 'ret': float(r)}
+            for d, r in rets.items()
+        ]
     return {'daily_returns_by_ticker': out, 'start_date': start_date, 'end_date': end_date}
+
+
+def _adj_close_daily_returns(
+    ticker: str,
+    client: FinMindClient,
+    start_date: str,
+    end_date: str,
+) -> tuple[pd.Series | None, bool]:
+    """v3.0.4 P0 fix: 含息還原後的 daily returns(graceful fallback)。
+
+    邏輯:
+      1. 抓 raw close + dividends + splits(走 cache)
+      2. 走 build_adjusted_close → 含息 adj close
+      3. pct_change → daily returns
+      4. 若 div/split cache 都空 → fallback 到 raw close(等同 v3.0.3 行為)
+
+    Returns:
+        (returns_series, fallback_to_raw)
+        - returns_series: pd.Series 含 date index, name=ticker
+        - fallback_to_raw: True 表示該 ticker 走 graceful fallback(沒事件)
+          呼叫端可以 log warning
+
+    Fallback 安全性:
+      - build_adjusted_close(prices, {}, {}) = prices(沒事件就當 raw)
+      - 數學結果等同 raw close pct_change
+      - 不會 silently 壞掉,只是跟原本一樣
+    """
+    try:
+        rows = client.get_stock_price(ticker, start_date, end_date, use_cache=True)
+    except Exception:
+        return None, False
+    if not rows:
+        return None, False
+
+    # 取 div/split(若 cache miss 會走 API,失敗就 graceful empty)
+    try:
+        divs = client.get_dividends(ticker, start_date, end_date)
+    except Exception:
+        divs = []
+    try:
+        splits = client.get_splits(ticker, start_date, end_date)
+    except Exception:
+        splits = []
+
+    has_events = bool(divs) or bool(splits)
+
+    df = pd.DataFrame(rows)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.set_index('date').sort_index()
+    pivot = pd.DataFrame({ticker: df['close']})
+    adj = build_adjusted_close(
+        pivot,
+        dividends_by_ticker={ticker: divs} if divs else {},
+        splits_by_ticker={ticker: splits} if splits else {},
+    )
+    rets = adj[ticker].pct_change().dropna()
+    # v3.0.4 fix: 過濾 inf (close=0 → pct_change(±∞))
+    rets = rets.replace([float('inf'), float('-inf')], float('nan')).dropna()
+
+    if len(rets) > 0:
+        rets.name = ticker
+        return rets, not has_events
+    return None, not has_events
 
 
 def _compute_v2_extensions(
