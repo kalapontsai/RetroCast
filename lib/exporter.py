@@ -335,7 +335,10 @@ def _render_rolling_chart_svg(forecast: dict, width: int = 720, height: int = 28
     - 顏色/虛線 與 web UI Chart.js 配色對齊（GitHub dark 配色系）
     """
     rolling = forecast.get('rolling') or []
-    scenarios = forecast.get('scenarios') or []
+    scenarios = forecast.get('scenarios') or [
+        {'label': label, 'cagr': value}
+        for label, value in (forecast.get('percentiles') or {}).items()
+    ]
     if not rolling or not scenarios:
         return ''
 
@@ -466,6 +469,8 @@ def _render_rolling_chart_svg(forecast: dict, width: int = 720, height: int = 28
         f'transform="rotate(-90 {margin_l - 44},{margin_t + plot_h / 2:.2f})" '
         f'text-anchor="middle" fill="#64748b">年化報酬率（CAGR）</text>'
     )
+    parts.append('</svg>')
+    return ''.join(parts)
 
 
 def _render_ruin_age_chart_svg(sequence_risk: dict, width: int = 720, height: int = 260) -> str:

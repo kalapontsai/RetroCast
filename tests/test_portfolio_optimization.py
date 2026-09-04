@@ -1,8 +1,9 @@
 """Focused tests for portfolio-level risk and evidence-aware optimisation."""
 import numpy as np
 import pandas as pd
+import pytest
 
-from lib.portfolio_optimization import build_optimization
+from lib.portfolio_optimization import build_optimization, estimate_transaction_cost
 
 
 def _prices(days=520):
@@ -47,3 +48,41 @@ def test_infeasible_weight_bounds_are_reported():
     result = build_optimization(p, current, {t: 1000 for t in p}, {t: 100 for t in p}, {t: 10 for t in p}, 1)
     assert result['status'] != 'SUCCESS'
     assert result['validation']['constraints_feasible'] is False
+
+
+def test_transaction_cost_is_direction_aware_and_enters_objective():
+    cost = estimate_transaction_cost([.60, .40], [.40, .60], 1_000_000,
+                                     {'commission_buy': .001425, 'commission_sell': .001425,
+                                      'tax_sell': .003, 'slippage': .001})
+    assert cost['buy_value'] == pytest.approx(200_000)
+    assert cost['sell_value'] == pytest.approx(200_000)
+    assert cost['tax'] == pytest.approx(600)
+    assert cost['transaction_cost'] > 0
+
+
+def test_pairwise_observation_counts_and_zero_cost_objective():
+    p = _prices()
+    tickers = list(p.columns)
+    current = {t: 1 / 7 for t in tickers}
+    result = build_optimization(p, current, {t: 1000 for t in tickers},
+                                {t: 100 for t in tickers}, {t: 10 for t in tickers}, 1,
+                                fees={'commission_buy': .001425, 'commission_sell': .001425,
+                                      'tax_sell': .003, 'slippage': .001})
+    matrix = result['dataset']['pairwise_observation_count_matrix']
+    assert matrix['values'][0][0] >= matrix['values'][0][1]
+    assert result['validation']['transaction_cost_in_objective'] is True
+
+
+def test_retirement_monte_carlo_compares_current_and_optimized():
+    p = _prices(days=700)
+    tickers = list(p.columns)
+    current = {t: 1 / 7 for t in tickers}
+    result = build_optimization(
+        p, current, {t: 1000 for t in tickers}, {t: 100 for t in tickers}, {t: 10 for t in tickers}, 1,
+        fees={'commission_buy': .001425, 'commission_sell': .001425, 'tax_sell': .003, 'slippage': .001},
+        retirement_config={'initial_balance': 7_000_000, 'horizon_years': 10,
+                           'n_simulations': 100, 'retirement_age': 60, 'current_age': 55,
+                           'retirement_end_age': 65, 'withdrawal_monthly': 30_000, 'seed': 42},
+    )
+    assert result['retirement_monte_carlo']['status'] == 'SUCCESS'
+    assert {'current', 'optimized'} <= result['retirement_monte_carlo'].keys()

@@ -129,7 +129,7 @@ Sequence Risk 的年齡規則：
 YearsFromNow = TargetAge - CurrentAge
 ```
 
-例如 `CurrentAge=55` 時，70/80/90/100/110 分別是 15/25/35/45/55 年。只有明確指定 Age 110 終點時才允許退休模擬超過既有 50 年一般上限。
+例如 `CurrentAge=55` 時，60/65/70/80/90/100/110 分別是 5/10/15/25/35/45/55 年。只有明確指定 Age 110 終點時才允許退休模擬超過既有 50 年一般上限。
 
 ## 4. 資料與計算不變量
 
@@ -169,7 +169,7 @@ git diff --check
 - 權重總和接近 1，且每個權重通過上下限。
 - Portfolio Volatility / MDD 不是個股風險加權。
 - HTML 可離線開啟，且包含 Requested N、Actual Common Period、Evidence、交易成本與退休風險結果。
-- CurrentAge=55 時，Age 70、80、90、100、110 的 Years From Now 正確。
+- CurrentAge=55 時，Age 60、65、70、80、90、100、110 的 Years From Now 正確。
 
 ## 7. 安全邊界
 

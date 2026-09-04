@@ -205,12 +205,15 @@ def simulate_sequence_risk(
         wealth_by_age[str(age)] = {
             'age': age,
             'years_from_now': age - config.current_age,
+            'survival_probability': float(np.mean(balances > 0)),
             'depletion_probability': float(np.mean(balances <= 0)),
             'p10': _safe_int_round(np.nanpercentile(balances, 10)),
+            'p5': _safe_int_round(np.nanpercentile(balances, 5)),
             'p25': _safe_int_round(np.nanpercentile(balances, 25)),
             'p50': _safe_int_round(np.nanpercentile(balances, 50)),
             'p75': _safe_int_round(np.nanpercentile(balances, 75)),
             'p90': _safe_int_round(np.nanpercentile(balances, 90)),
+            'p95': _safe_int_round(np.nanpercentile(balances, 95)),
         }
 
     return SequenceRiskResult(

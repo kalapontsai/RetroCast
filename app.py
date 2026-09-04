@@ -1137,6 +1137,21 @@ def _run_analyze(body: dict) -> dict:
     # 10) 組裝回傳
     # Return + Risk + MDD optimisation uses the same adjusted prices and the
     # same market-value weights as the legacy report; it never fabricates data.
+    retirement_config = {
+        'initial_balance': float(pv_raw) if pv_raw else 7_236_096,
+        'horizon_years': int(body.get('v2_horizon_years', int(body.get('v2_retirement_end_age', 85)) - int(body.get('v2_current_age', 55)))),
+        'n_simulations': int(body.get('v2_n_simulations', 1000)),
+        'retirement_age': int(body.get('v2_retirement_age', 60)),
+        'current_age': int(body.get('v2_current_age', body.get('current_age', 55))),
+        'retirement_end_age': int(body.get('v2_retirement_end_age', 85)),
+        'withdrawal_monthly': float(body.get('v2_withdrawal_monthly', 30_000)),
+        'withdrawal_inflation': float(body.get('v2_withdrawal_inflation', 0.03)),
+        'pension_monthly': float(body.get('v2_pension_monthly', 0.0)),
+        'pension_inflation': float(body.get('v2_pension_inflation', 0.02)),
+        'pension_start_age': int(body.get('v2_retirement_age', 60)),
+        'special_expenses': body.get('v2_special_expenses') or [],
+        'seed': 42,
+    }
     optimization = build_optimization(
         prices_adj,
         current_weights=effective_weights or {},
@@ -1144,8 +1159,10 @@ def _run_analyze(body: dict) -> dict:
         current_prices={x['ticker']: x['close'] for x in mv.get('per_stock', [])},
         shares=combined_shares,
         n_years=n,
-        fees={'commission': fee_buy + fee_sell, 'slippage': slippage, 'tax_sell': tax_sell},
+        fees={'commission_buy': fee_buy, 'commission_sell': fee_sell,
+              'slippage': slippage, 'tax_sell': tax_sell},
         risk_free_rate=float(body.get('v2_risk_free_rate', body.get('risk_free_rate', 0.015))),
+        retirement_config=retirement_config,
     )
     # overview 改成驗收標準要求的欄位（start/end/rows/first_close/last_close）
     # 保留舊欄位（stocks/min_years/median_years/max_years）作 compatibility
@@ -1436,7 +1453,7 @@ def _compute_v2_extensions(
     # v2_horizon_years remains an API override.
     current_age = int(body.get('v2_current_age', body.get('current_age', 55)))
     retirement_age = int(body.get('v2_retirement_age', body.get('retirement_age', 60)))
-    retirement_end_age = int(body.get('v2_retirement_end_age', 90))
+    retirement_end_age = int(body.get('v2_retirement_end_age', 85))
     horizon = int(body.get('v2_horizon_years', retirement_end_age - current_age))
     # Phase 6 (Item 8): retirement_end_age also feeds retirement_inputs.
     forecast_horizon = int(body.get('v2_forecast_horizon', body.get('n', n_years)))
@@ -1485,6 +1502,7 @@ def _compute_v2_extensions(
             n_simulations=n_sims,
             retirement_age=retirement_age,
             current_age=current_age,            # Phase 1.1: 年齡模型 (退休前不扣款)
+            retirement_end_age=retirement_end_age,
             withdrawal_monthly=float(body.get('v2_withdrawal_monthly', 30_000)),
             withdrawal_inflation=float(body.get('v2_withdrawal_inflation', 0.03)),
             pension_monthly=float(body.get('v2_pension_monthly', 0.0)),

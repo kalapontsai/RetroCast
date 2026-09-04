@@ -3,6 +3,22 @@
 > 2026-08-26 改名（from `retirement_decision_v2`）。
 > 歷史 commit 維持原樣，新 commit 走 `https://github.com/kalapontsai/RetroCast`。
 
+## Unreleased — 退休分析與最佳化報告更新（2026-09-04）
+
+### 重點
+
+- Transaction Cost Penalty 正式納入最佳化 objective，分離買入/賣出 commission、slippage 與賣出證交稅。
+- 退休分析同時執行 Current 與 Optimized Monte Carlo，沿用相同退休參數、模擬次數與 seed 以利比較。
+- Sequence Risk 報告固定輸出 Age 60/65/70/80/90/100/110、Years From Now 與退休後年數。
+- 報告新增 Evidence Score 四元件、Pairwise Observation Count Matrix、可靠性警告及 Rebalance Final Recommendation Summary。
+- 保留未指定終點時的既有 API horizon 預設；UI 可明確評估至 Age 110。
+
+### 驗證
+
+- Targeted tests：75 passed、2 skipped。
+- 實際 `kadela_stock` pipeline：HTTP 200；Current/Optimized Monte Carlo 均為 `SUCCESS`。
+- `py_compile` 與 `git diff --check` 通過。
+
 ## Unreleased — 文件同步（2026-09-02）
 
 - README 重寫為目前版本的安裝、功能、API、資料格式與研究限制說明，不再混入過去版本歷史。

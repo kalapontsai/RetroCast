@@ -188,8 +188,8 @@
     <table>
       <thead><tr>
         <th>股票</th>
-        <th>開始日期</th>
-        <th>結束日期</th>
+        <th>起始日</th>
+        <th>終止日</th>
         <th>回測年數</th>
         <th>累積總報酬率</th>
         <th>年化報酬率</th>
@@ -204,11 +204,11 @@
           <td>{{ info.start or '—' }}</td>
           <td>{{ info.end or '—' }}</td>
           <td>{{ "%.2f"|format(info.years) }}</td>
-          <td style="color:{% if info.total_return and info.total_return >= 0 %}#1e8e3e{% elif info.total_return %}#b42318{% endif %}">{{ info.total_return | fmt_pct(decimals=2) if info.total_return is not none else '—' }}%</td>
-          <td style="color:{% if info.cagr and info.cagr >= 0 %}#1e8e3e{% elif info.cagr %}#b42318{% endif %}">{{ info.cagr | fmt_pct(decimals=2) if info.cagr is not none else '—' }}%</td>
-          <td style="color:{% if info.mdd and info.mdd < -0.5 %}#b42318{% elif info.mdd and info.mdd < -0.2 %}#d29922{% endif %}">{{ info.mdd | fmt_pct(decimals=2) if info.mdd is not none else '—' }}%</td>
-          <td>{{ info.volatility | fmt_pct(decimals=2) if info.volatility is not none else '—' }}%</td>
-          <td style="color:{% if info.sharpe and info.sharpe >= 1 %}#1e8e3e{% elif info.sharpe and info.sharpe < 0 %}#b42318{% endif %}">{{ "%.2f"|format(info.sharpe) if info.sharpe is not none else '—' }}</td>
+          <td style="color:{% if info.get('total_return') and info.get('total_return') >= 0 %}#1e8e3e{% elif info.get('total_return') %}#b42318{% endif %}">{{ info.get('total_return') | fmt_pct(decimals=2) if info.get('total_return') is not none else '—' }}%</td>
+          <td style="color:{% if info.get('cagr') and info.get('cagr') >= 0 %}#1e8e3e{% elif info.get('cagr') %}#b42318{% endif %}">{{ info.get('cagr') | fmt_pct(decimals=2) if info.get('cagr') is not none else '—' }}%</td>
+          <td style="color:{% if info.get('mdd') and info.get('mdd') < -0.5 %}#b42318{% elif info.get('mdd') and info.get('mdd') < -0.2 %}#d29922{% endif %}">{{ info.get('mdd') | fmt_pct(decimals=2) if info.get('mdd') is not none else '—' }}%</td>
+          <td>{{ info.get('volatility') | fmt_pct(decimals=2) if info.get('volatility') is not none else '—' }}%</td>
+          <td style="color:{% if info.get('sharpe') and info.get('sharpe') >= 1 %}#1e8e3e{% elif info.get('sharpe') and info.get('sharpe') < 0 %}#b42318{% endif %}">{{ "%.2f"|format(info.get('sharpe')) if info.get('sharpe') is not none else '—' }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -247,11 +247,11 @@
             <td>{{ info.start or '—' }}</td>
             <td>{{ info.end or '—' }}</td>
             <td>{{ "%.2f"|format(info.years) }} {% if info.short %}<small style="color:#5a6a7e;">/ {{ info.n_years }}y</small>{% endif %}</td>
-            <td style="color:{% if info.total_return and info.total_return >= 0 %}#1e8e3e{% elif info.total_return %}#b42318{% endif %}">{{ info.total_return | fmt_pct(decimals=2) if info.total_return is not none else '—' }}%</td>
-            <td style="color:{% if info.cagr and info.cagr >= 0 %}#1e8e3e{% elif info.cagr %}#b42318{% endif %}">{{ info.cagr | fmt_pct(decimals=2) if info.cagr is not none else '—' }}%</td>
-            <td style="color:{% if info.mdd and info.mdd < -0.5 %}#b42318{% elif info.mdd and info.mdd < -0.2 %}#d29922{% endif %}">{{ info.mdd | fmt_pct(decimals=2) if info.mdd is not none else '—' }}%</td>
-            <td>{{ info.volatility | fmt_pct(decimals=2) if info.volatility is not none else '—' }}%</td>
-            <td style="color:{% if info.sharpe and info.sharpe >= 1 %}#1e8e3e{% elif info.sharpe and info.sharpe < 0 %}#b42318{% endif %}">{{ "%.2f"|format(info.sharpe) if info.sharpe is not none else '—' }}</td>
+            <td style="color:{% if info.get('total_return') and info.get('total_return') >= 0 %}#1e8e3e{% elif info.get('total_return') %}#b42318{% endif %}">{{ info.get('total_return') | fmt_pct(decimals=2) if info.get('total_return') is not none else '—' }}%</td>
+            <td style="color:{% if info.get('cagr') and info.get('cagr') >= 0 %}#1e8e3e{% elif info.get('cagr') %}#b42318{% endif %}">{{ info.get('cagr') | fmt_pct(decimals=2) if info.get('cagr') is not none else '—' }}%</td>
+            <td style="color:{% if info.get('mdd') and info.get('mdd') < -0.5 %}#b42318{% elif info.get('mdd') and info.get('mdd') < -0.2 %}#d29922{% endif %}">{{ info.get('mdd') | fmt_pct(decimals=2) if info.get('mdd') is not none else '—' }}%</td>
+            <td>{{ info.get('volatility') | fmt_pct(decimals=2) if info.get('volatility') is not none else '—' }}%</td>
+            <td style="color:{% if info.get('sharpe') and info.get('sharpe') >= 1 %}#1e8e3e{% elif info.get('sharpe') and info.get('sharpe') < 0 %}#b42318{% endif %}">{{ "%.2f"|format(info.get('sharpe')) if info.get('sharpe') is not none else '—' }}</td>
           </tr>
         {% endfor %}
         </tbody>
@@ -499,19 +499,19 @@
     <table>
       <thead><tr><th>指標</th><th>數值（NT$）</th></tr></thead>
       <tbody>
-        <tr><td>中位終值</td><td>{{ mcs.median_final | fmt_money }}</td></tr>
-        <tr><td>平均終值</td><td>{{ mcs.mean_final | fmt_money }}</td></tr>
+        <tr><td>中位終值</td><td>{{ mcs.get('median_final') | fmt_money }}</td></tr>
+        <tr><td>平均終值</td><td>{{ mcs.get('mean_final') | fmt_money }}</td></tr>
         {# Phase 6 (Item 5): F1 完整分位數 P5/P10/P25/P50/P75/P90/P95 #}
-        <tr><td>P5（極端下限）</td><td>{{ mcs.p5_final | fmt_money }}</td></tr>
-        <tr><td>P10（養老規劃下限）</td><td>{{ mcs.p10_final | fmt_money }}</td></tr>
-        <tr><td>P25（保守下限）</td><td>{{ mcs.p25_final | fmt_money }}</td></tr>
-        <tr><td>P75（樂觀上限）</td><td>{{ mcs.p75_final | fmt_money }}</td></tr>
-        <tr><td>P90（養老規劃上限）</td><td>{{ mcs.p90_final | fmt_money }}</td></tr>
-        <tr><td>P95（極端上限）</td><td>{{ mcs.p95_final | fmt_money }}</td></tr>
-        <tr><td>標準差（NT$）</td><td>{{ mcs.std_final | fmt_money }}</td></tr>
-        <tr><td>資產 ≥ 初始機率</td><td>{{ "{:.2%}".format(mcs.prob_above_initial) }}</td></tr>
-        <tr><td>資產 ≤ 0 機率（破產）</td><td>{{ "{:.2%}".format(mcs.prob_zero_or_negative) }}</td></tr>
-        <tr><td>存活到 horizon 機率</td><td>{{ "{:.2%}".format(mcs.survival_to_horizon) }}</td></tr>
+        <tr><td>P5（極端下限）</td><td>{{ mcs.get('p5_final') | fmt_money }}</td></tr>
+        <tr><td>P10（養老規劃下限）</td><td>{{ mcs.get('p10_final') | fmt_money }}</td></tr>
+        <tr><td>P25（保守下限）</td><td>{{ mcs.get('p25_final') | fmt_money }}</td></tr>
+        <tr><td>P75（樂觀上限）</td><td>{{ mcs.get('p75_final') | fmt_money }}</td></tr>
+        <tr><td>P90（養老規劃上限）</td><td>{{ mcs.get('p90_final') | fmt_money }}</td></tr>
+        <tr><td>P95（極端上限）</td><td>{{ mcs.get('p95_final') | fmt_money }}</td></tr>
+        <tr><td>標準差（NT$）</td><td>{{ mcs.get('std_final') | fmt_money }}</td></tr>
+        <tr><td>資產 ≥ 初始機率</td><td>{{ "{:.2%}".format(mcs.get('prob_above_initial', 0)) }}</td></tr>
+        <tr><td>資產 ≤ 0 機率（破產）</td><td>{{ "{:.2%}".format(mcs.get('prob_zero_or_negative', 0)) }}</td></tr>
+        <tr><td>存活到 horizon 機率</td><td>{{ "{:.2%}".format(mcs.get('survival_to_horizon', 0)) }}</td></tr>
       </tbody>
     </table>
     {% if fan_chart_svg %}
@@ -527,6 +527,7 @@
     {% endif %}
     {% endif %}
 
+    {% set optimization = analyze.get('optimization') or {} %}
     {% if analyze.sequence_risk and analyze.sequence_risk.survival_rate is defined %}
     {% set sr = analyze.sequence_risk %}
     <h3 style="color:#17365d; margin-top:24px;">▶ F2 Sequence Risk（退休提款存活率）</h3>
@@ -537,6 +538,16 @@
       <b>破產判定：任一年末資產 ≤ 0</b>。
     </p>
     {% set sr_cfg = sr.config or {} %}
+    <p><b>Current Age = {{ sr_cfg.get('current_age') }} · Retirement Age = {{ sr_cfg.get('retirement_age') }} · Evaluation End Age = {{ sr_cfg.get('retirement_end_age') }}</b><br>
+      Years to Retirement = {{ sr_cfg.get('retirement_age', 60) - sr_cfg.get('current_age', 55) }} ·
+      Retirement Evaluation Period = {{ sr_cfg.get('retirement_end_age', 110) - sr_cfg.get('retirement_age', 60) }} years ·
+      Total Projection Period = {{ sr_cfg.get('retirement_end_age', 110) - sr_cfg.get('current_age', 55) }} years</p>
+    <h4>Sequence Risk by Age</h4>
+    <table><thead><tr><th>Age</th><th>Years From Now</th><th>Years After Retirement</th><th>Survival Probability</th><th>Median Asset</th><th>P5 Asset</th><th>P95 Asset</th></tr></thead><tbody>
+    {% for age in [60, 65, 70, 80, 90, 100, 110] %}{% set row = sr.get('wealth_by_age', {}).get(age|string, {}) %}
+      <tr><td>{{ age }}</td><td>{{ age - sr_cfg.get('current_age', 55) }}</td><td>{{ age - sr_cfg.get('retirement_age', 60) }}</td><td>{{ sr.success_rate_by_age.get(age|string, 'N/A') if sr.success_rate_by_age.get(age|string) is not none else 'N/A' }}</td><td>{{ row.get('p50', 'N/A')|fmt_money }}</td><td>{{ row.get('p5', 'N/A')|fmt_money }}</td><td>{{ row.get('p95', 'N/A')|fmt_money }}</td></tr>
+    {% endfor %}</tbody></table>
+    {% if optimization.get('retirement_monte_carlo', {}).get('status') == 'SUCCESS' %}<h4>Current vs Optimized Sequence Risk by Age</h4><table><thead><tr><th>Age</th><th>Current Survival</th><th>Optimized Survival</th><th>Current Median Asset</th><th>Optimized Median Asset</th></tr></thead><tbody>{% for age in [60, 65, 70, 80, 90, 100, 110] %}{% set c_row = optimization.retirement_monte_carlo.current.wealth_by_age.get(age|string, {}) %}{% set o_row = optimization.retirement_monte_carlo.optimized.wealth_by_age.get(age|string, {}) %}<tr><td>{{ age }}</td><td>{{ c_row.get('survival_probability', 'N/A') }}</td><td>{{ o_row.get('survival_probability', 'N/A') }}</td><td>{{ c_row.get('p50', 'N/A')|fmt_money }}</td><td>{{ o_row.get('p50', 'N/A')|fmt_money }}</td></tr>{% endfor %}</tbody></table>{% endif %}
     <table class="compact" style="margin-bottom:12px;">
       <thead><tr><th colspan="2">F2 本次計算條件</th></tr></thead>
       <tbody>
@@ -635,6 +646,7 @@
    只有 0.5 年區間，MDD 不具參考性。full mode 用全期 (例 26.57 年) 才有意義。
    (二寶) #}
 {% set full_m = (analyze.full or {}).metrics or {} %}
+{% if not full_m.get('mdd_peak_date') %}{% set full_m = (analyze.common or {}).metrics or {} %}{% endif %}
 {% if full_m.get('mdd_peak_date') %}
 <div class="card">
   <h2>六、風險指標</h2>
@@ -724,6 +736,7 @@
     {% if opt.correlation_matrix %}
     <h3>Correlation Matrix</h3><table><thead><tr><th></th>{% for t in opt.correlation_matrix['tickers'] %}<th>{{ t }}</th>{% endfor %}</tr></thead><tbody>{% for row in opt.correlation_matrix['values'] %}<tr><td>{{ opt.correlation_matrix['tickers'][loop.index0] }}</td>{% for v in row %}<td>{{ v|fmt_float(decimals=3) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
     <h3>Annualized Covariance Matrix</h3><table><thead><tr><th></th>{% for t in opt.covariance_matrix['tickers'] %}<th>{{ t }}</th>{% endfor %}</tr></thead><tbody>{% for row in opt.covariance_matrix['values'] %}<tr><td>{{ opt.covariance_matrix['tickers'][loop.index0] }}</td>{% for v in row %}<td>{{ v|fmt_float(decimals=5) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+    {% if opt.dataset.pairwise_observation_count_matrix %}<h3>Pairwise Observation Count / Reliability</h3><table><thead><tr><th></th>{% for t in opt.dataset.pairwise_observation_count_matrix['tickers'] %}<th>{{ t }}</th>{% endfor %}</tr></thead><tbody>{% for row in opt.dataset.pairwise_observation_count_matrix['values'] %}<tr><td>{{ opt.dataset.pairwise_observation_count_matrix['tickers'][loop.index0] }}</td>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endif %}
     {% endif %}
     {% if opt.current and opt.optimized %}
     {% set om = opt.optimized %}{% set cm = opt.current %}
@@ -735,9 +748,9 @@
     </tbody></table>
     {% endif %}
     {% if opt.scores %}
-    <h3>Evidence / Raw Score / Adjusted Score</h3>
-    <table><thead><tr><th>標的</th><th>History Years</th><th>Classification</th><th>Evidence</th><th>Evidence Factor</th><th>Raw Score</th><th>Adjusted Score</th><th>Candidate</th></tr></thead><tbody>
-      {% for t, s in opt.scores|dictsort %}<tr><td>{{ t }}</td><td>{{ s.history_years }}</td><td>{{ s.classification }}</td><td>{{ s.evidence_score|fmt_float if s.evidence_score is not none else 'N/A' }}</td><td>{{ s.evidence_factor|fmt_float }}</td><td>{{ s.raw_score|fmt_float }}</td><td>{{ s.adjusted_score|fmt_float if s.adjusted_score is not none else 'N/A' }}</td><td>{% if s.emerging_quality_candidate %}Emerging Quality Candidate{% else %}—{% endif %}</td></tr>{% endfor %}
+    <h3>Evidence Component Breakdown / Raw Score / Adjusted Score</h3>
+    <table><thead><tr><th>Asset</th><th>History Years</th><th>History Score</th><th>Regime Coverage</th><th>Drawdown Evidence</th><th>Observation Score</th><th>Evidence Score</th><th>Evidence Factor</th><th>Raw Score</th><th>Adjusted Score</th></tr></thead><tbody>
+      {% for t, s in opt.scores|dictsort %}<tr><td>{{ t }}</td><td>{{ s.history_years }}</td><td>{{ s.history_length_score|fmt_float }}</td><td>{{ s.market_regime_coverage_score|fmt_float }}</td><td>{{ s.drawdown_evidence_score|fmt_float }}</td><td>{{ s.observation_score|fmt_float }}</td><td>{{ s.evidence_score|fmt_float if s.evidence_score is not none else 'N/A' }}</td><td>{{ s.evidence_factor|fmt_float }}</td><td>{{ s.raw_score|fmt_float }}</td><td>{{ s.adjusted_score|fmt_float if s.adjusted_score is not none else 'N/A' }}</td></tr>{% endfor %}
     </tbody></table>
     {% endif %}
     {% if opt.optimized and opt.trades %}
@@ -746,13 +759,14 @@
     <table><thead><tr><th>標的</th><th>Current Weight</th><th>Target Weight</th><th>Actual Weight</th><th>Target Value</th><th>Trade Value</th><th>Target Shares</th><th>Action</th></tr></thead><tbody>
       {% for x in opt.trades %}<tr><td>{{ x.ticker }}</td><td>{{ x.current_weight|fmt_pct }}%</td><td>{{ x.target_weight|fmt_pct }}%</td><td>{{ x.actual_weight|fmt_pct }}%</td><td>{{ x.target_value|fmt_money }}</td><td>{{ x.trade_value|fmt_money }}</td><td>{{ x.target_shares if x.target_shares is not none else 'N/A' }}</td><td>{{ x.action }}</td></tr>{% endfor %}
     </tbody></table>
-    <table><tbody><tr><td>Gross Trade Value</td><td>{{ opt.transaction_cost.gross_trade_value|fmt_money }}</td></tr><tr><td>Commission</td><td>{{ opt.transaction_cost.commission|fmt_money }}</td></tr><tr><td>Slippage</td><td>{{ opt.transaction_cost.slippage|fmt_money }}</td></tr><tr><td>Tax</td><td>{{ opt.transaction_cost.tax|fmt_money }}</td></tr><tr><td>Net Trade Value</td><td>{{ opt.transaction_cost.net_trade_value|fmt_money }}</td></tr><tr><td>Cash Residual after whole shares</td><td>{{ opt.transaction_cost.cash_residual|fmt_money }}</td></tr></tbody></table>
+    <table><tbody><tr><td>Gross Trade Value</td><td>{{ opt.transaction_cost.gross_trade_value|fmt_money }}</td></tr><tr><td>Estimated Commission</td><td>{{ opt.transaction_cost.estimated_commission|fmt_money }}</td></tr><tr><td>Estimated Tax (sell only)</td><td>{{ opt.transaction_cost.estimated_tax|fmt_money }}</td></tr><tr><td>Estimated Slippage</td><td>{{ opt.transaction_cost.estimated_slippage|fmt_money }}</td></tr><tr><td>Estimated Total Transaction Cost</td><td>{{ opt.transaction_cost.estimated_total_transaction_cost|fmt_money }}</td></tr><tr><td>Transaction Cost / Portfolio Value</td><td>{{ opt.transaction_cost.transaction_cost_penalty|fmt_pct }}%</td></tr><tr><td>Cash Residual after whole shares</td><td>{{ opt.transaction_cost.cash_residual|fmt_money }}</td></tr></tbody></table>
     {% elif opt.reason %}<p style="color:#b42318;"><b>Optimization Not Executed / Data Insufficient:</b> {{ opt.reason }}<br>N/A Reason: required common Daily Return Matrix, valid covariance and complete Evidence Score. Resolution: provide sufficient adjusted price observations.</p>
     {% endif %}
     {% if opt.sensitivity %}<h3>Lambda / Gamma Sensitivity</h3><table><thead><tr><th>Mode</th><th>λ</th><th>γ</th><th>CAGR</th><th>Vol</th><th>MDD</th><th>Sharpe</th><th>Max Weight</th><th>Top 5</th><th>Turnover</th></tr></thead><tbody>{% for x in opt.sensitivity %}<tr><td>{{ x.mode }}</td><td>{{ x.lambda_tracking }}</td><td>{{ x.gamma_concentration }}</td><td>{{ x.cagr|fmt_pct }}%</td><td>{{ x.volatility|fmt_pct }}%</td><td>{{ x.mdd|fmt_pct }}%</td><td>{{ x.sharpe|fmt_float }}</td><td>{{ x.maximum_weight|fmt_pct }}%</td><td>{{ x.top5_concentration|fmt_pct }}%</td><td>{{ x.turnover|fmt_pct }}%</td></tr>{% endfor %}</tbody></table>{% endif %}
     {% if opt.concentration %}<h3>Concentration Analysis</h3><table><thead><tr><th>Metric</th><th>Current</th><th>Optimized</th><th>Direction</th></tr></thead><tbody><tr><td>Maximum Single Weight</td><td>{{ opt.concentration.current_max_weight|fmt_pct }}%</td><td>{{ opt.concentration.optimized_max_weight|fmt_pct }}%</td><td>Lower is better</td></tr><tr><td>Top 5 Concentration</td><td>{{ opt.concentration.current_top5|fmt_pct }}%</td><td>{{ opt.concentration.optimized_top5|fmt_pct }}%</td><td>Lower is better</td></tr><tr><td>HHI</td><td>{{ opt.concentration.current_hhi|fmt_float }}</td><td>{{ opt.concentration.optimized_hhi|fmt_float }}</td><td>Lower is better</td></tr></tbody></table>{% endif %}
     {% if opt.stress_test %}<h3>Historical Stress Test</h3><table><thead><tr><th>Scenario</th><th>Status / MDD</th><th>N/A Reason</th></tr></thead><tbody>{% for name,x in opt.stress_test.items() %}<tr><td>{{ name }}</td><td>{% if x.mdd is defined %}MDD {{ x.mdd|fmt_pct }}%{% else %}N/A{% endif %}</td><td>{{ x.reason or '—' }}</td></tr>{% endfor %}</tbody></table>{% endif %}
-    <h3>Retirement Monte Carlo Comparison</h3><p class="meta">Current Portfolio vs Optimized Portfolio：{% if opt.retirement_monte_carlo and opt.retirement_monte_carlo.status == 'N/A' %}N/A — {{ opt.retirement_monte_carlo.reason }}{% else %}N/A{% endif %}</p>
+    {% set rmc = opt.retirement_monte_carlo or {} %}<h3>{% if opt.retirement_monte_carlo %}Retirement Monte Carlo Comparison{% else %}Retirement Comparison{% endif %}</h3>
+    {% if rmc.status == 'SUCCESS' %}<table><thead><tr><th>Metric</th><th>Current</th><th>Optimized</th><th>Difference</th></tr></thead><tbody>{% for key,label in [('success_rate','Success Rate'),('failure_rate','Failure Rate'),('median_ending_asset','Median Ending Asset'),('p5_ending_asset','P5 Ending Asset'),('p25_ending_asset','P25 Ending Asset'),('p75_ending_asset','P75 Ending Asset'),('p95_ending_asset','P95 Ending Asset'),('median_depletion_age','Median Depletion Age'),('p5_depletion_age','P5 Depletion Age')] %}<tr><td>{{ label }}</td><td>{{ rmc.current.get(key, 'N/A') }}</td><td>{{ rmc.optimized.get(key, 'N/A') }}</td><td>{% if rmc.current.get(key) is not none and rmc.optimized.get(key) is not none %}{{ rmc.optimized.get(key) - rmc.current.get(key) }}{% else %}N/A{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="meta">N/A — {{ rmc.reason or 'retirement inputs unavailable' }}</p>{% endif %}
     {% if opt.validation %}<h3>Optimization Validation / Model Audit</h3><table><tbody>{% for k,v in opt.validation.items() %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</tbody></table>{% endif %}
     <p class="meta">公式：Portfolio Volatility = √(w′Σw)；Portfolio MDD = min(Equity / running peak − 1)；AdjustedScore = RawScore × (0.70 + 0.30 × EvidenceScore)。</p>
   </div>

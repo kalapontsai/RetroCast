@@ -60,7 +60,7 @@ AdjustedScore = RawScore * EvidenceFactor
 - Monte Carlo：以歷史日報酬 block bootstrap 模擬未來路徑。
 - Sequence Risk：逐日模擬年初提款、通膨、退休金與一次性支出；歸零路徑不會復活。
 - `CurrentAge` 與 `retirement_age` 分開處理，`YearsFromNow = TargetAge - CurrentAge`。
-- 可分析 Age 70、80、90、100、110 的 depletion probability 與 P10/P25/P50/P75/P90 wealth。
+- 可分析 Age 60、65、70、80、90、100、110 的 depletion probability 與 P5/P25/P50/P75/P95 wealth，並比較 Current 與 Optimized 組合。
 - 資料不足的 Walk-forward、Point-in-Time 或下市資產分析會標示不可用，不虛構結果。
 
 ## 專案結構
