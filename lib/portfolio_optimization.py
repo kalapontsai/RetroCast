@@ -275,8 +275,18 @@ def build_optimization(prices: pd.DataFrame, current_weights: dict, current_valu
         'reliability': [[_reliability_label(int(v)) for v in row] for row in pairwise_counts.to_numpy()]
     }
     if result['dataset']['valid_observation_ratio'] < DATA_QUALITY_THRESHOLDS['valid_ratio_warning']:
+        valid_pct = result['dataset']['valid_observation_ratio'] * 100
+        threshold_pct = DATA_QUALITY_THRESHOLDS['valid_ratio_warning'] * 100
+        # Identify the bottleneck ticker: the one whose pairwise intersections
+        # are smallest, i.e. the shortest individual history dragging the
+        # common period down.
+        bottleneck = str(pairwise_counts.sum(axis=0).idxmin())
+        bottleneck_obs = int(pairwise_counts.loc[bottleneck, bottleneck])
         result['data_quality_warnings'].append(
-            'WARNING: Common-period valid ratio is below 80%; covariance/correlation estimates require caution.'
+            f'⚠️ 嚴重警告：共同期間有效觀察比例僅 {valid_pct:.2f}%（門檻 {threshold_pct:.0f}%），'
+            f'主要瓶頸為 {bottleneck}（僅 {bottleneck_obs} 天歷史，是限制共同期間的關鍵標的）。'
+            f'建議：(1) 共變異數 / 相關性估計僅供參考，不宜作為分散效益的唯一依據；'
+            f'(2) 可改用 Ledoit-Wolf 縮減估計式，或暫時排除 {bottleneck} 重估矩陣。'
         )
     if (pairwise_counts.to_numpy() < DATA_QUALITY_THRESHOLDS['low_pairwise_observations']).any():
         result['data_quality_warnings'].append(

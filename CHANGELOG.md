@@ -3,6 +3,11 @@
 > 2026-08-26 改名（from `retirement_decision_v2`）。
 > 歷史 commit 維持原樣，新 commit 走 `https://github.com/kalapontsai/RetroCast`。
 
+## Unreleased — 資料品質警告改為可量化、可歸因、可行動（2026-09-05）
+
+- `data_quality_warnings` 中「共同期間有效觀察比例過低」警告改寫：明確列出實際百分比、門檻、瓶頸標的及其觀察天數，並提供兩條處置建議（縮減估計式 / 暫時排除瓶頸標的重估矩陣）。
+- 視覺以 ⚠️ + 嚴重警告 抬頭；由 pairwise_counts 自動推導瓶頸，無需手動指定。
+
 ## Unreleased — 退休分析與最佳化報告更新（2026-09-04）
 
 ### 重點
